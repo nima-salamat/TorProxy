@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QPushButton,
-    
+    QMessageBox
 )
 
 import qdarkstyle
@@ -22,6 +22,9 @@ from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property
 from PySide6.QtGui import QPainter, QColor, QBrush, QAction
 import sys
 
+from proxy import get_free_port, load_blocked, set_proxy, blocked_hosts, save_blocked
+
+from tor import TorRunner, Runner
 
 
 class PulseButton(QPushButton):
@@ -115,13 +118,35 @@ class PulseButton(QPushButton):
 class ProxyWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.running = False
+        
+        self.tor_socks_port = get_free_port()
+        self.proxy_port = get_free_port()
+        print(f'port(proxy): {self.proxy_port} - port(socks): {self.tor_socks_port}')
+        
+        self.tor = TorRunner(self.tor_socks_port)
+        self.tor.app_window = self
+        self.proxy = Runner(self.proxy_port, self.tor_socks_port, self)
+        
         self.main_layout = QVBoxLayout(self)
         self.setLayout(self.main_layout)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.connect_btn = PulseButton("Connect")
+        self.connect_btn.clicked.connect(self._toggle)
         self.main_layout.addWidget(self.connect_btn)
         
 
+    def _toggle(self):
+        if not self.running:
+            try:
+                self.proxy.start(); self.tor.start()
+                set_proxy(True, f"127.0.0.1:{self.proxy_port}")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Start failed: {e}"); return
+            self.running=True
+        else:
+            self.proxy.stop(); self.tor.stop(); set_proxy(False)
+            self.running=False;
 class CustomTitleBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -152,7 +177,7 @@ class CustomTitleBar(QWidget):
         if event.button() == Qt.LeftButton:
             self._start_pos = event.globalPosition().toPoint()
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event): 
         if self._start_pos:
             delta = event.globalPosition().toPoint() - self._start_pos
             self.window().move(self.window().pos() + delta)
@@ -204,7 +229,7 @@ class SettingWindow(QWidget):
     def back_to_proxy(self):
         self._parent.stack.setCurrentIndex(0)
         
-        
+
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -229,7 +254,10 @@ class Window(QMainWindow):
         self._createMenuBar()
         
         self.main_layout.addWidget(self.stack)
-        
+    
+    def closeEvent(self, event):
+        if self.running: self.proxy.stop(); self.tor.stop(); set_proxy(False)
+        event.accept()
     def _createMenuBar(self):
         
         menuBar = QMenuBar(self)
