@@ -1,5 +1,3 @@
-# === Full upgraded code ===
-
 import os
 import json
 import socks
