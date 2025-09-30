@@ -11,25 +11,47 @@ def resource_path(relative_path):
         base = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base, relative_path)
 
-tor_path = resource_path("Tor/tor.exe")
+tor_path = resource_path("tor_bundle/tor/tor.exe")
+lyrebird_path = resource_path("tor_bundle/tor/pluggable_transports/lyrebird.exe")
+geoip_path = resource_path("tor_bundle/data/geoip")
+geoip6_path = resource_path("tor_bundle/data/geoip6")
 
 class TorRunner:
     def __init__(self, socks_port):
         self.proc = None; self.thread = None; self.log_file = "tor_log.txt"
         self.socks_port = socks_port
+        self.bridge = False
+        self.bridge_type = "obfs4"
+        self.bridges = ""
+
+        self.bridge_types = ["obfs4"]
+        
     def start(self):
         if self.proc: return
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
     def _run(self):
-        flags = subprocess.CREATE_NO_WINDOW if platform.system()=="Windows" else 0
+        
         torrc_content = f"SocksPort {self.socks_port}\nLog notice stdout\n"
+        torrc_content += 'GeoIPFile ' + geoip_path + '\n'
+        torrc_content += 'GeoIPv6File ' + geoip6_path + '\n'
+
+        if self.bridge and self.bridges:
+            if self.bridge_type == "obfs4":    
+                torrc_content += 'UseBridges 1\n'
+                torrc_content += 'ClientTransportPlugin obfs4 exec '+ lyrebird_path +'\n'
+                torrc_content += self.bridges.replace("obfs4", "Bridge obfs4")
+        
         with open("temp_torrc.txt", "w") as f: f.write(torrc_content)
+        
+        flags = subprocess.CREATE_NO_WINDOW if platform.system()=="Windows" else 0
         self.proc = subprocess.Popen([tor_path, "-f", "temp_torrc.txt"],
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
+        
         with open(self.log_file, 'w') as f:
             for line in iter(self.proc.stdout.readline, b''):
                 f.write(line.decode()); f.flush()
+
     def stop(self):
         if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
         if self.thread: self.thread.join(); self.thread=None

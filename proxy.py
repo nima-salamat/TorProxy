@@ -64,7 +64,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.send_response(200, "Connection Established")
             self.end_headers()
             self._tunnel(self.connection, remote)
-            log_request(self.command, self.path, app_window=self.app_window)
+            # log_request(self.command, self.path, app_window=self.app_window)
         except Exception as e:
             self.send_error(502, f"CONNECT error: {e}")
 
@@ -100,7 +100,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 body = self.rfile.read(int(self.headers['Content-Length']))
             remote.sendall(full.encode() + body)
             self._tunnel(remote, self.connection)
-            log_request(self.command, self.path, len(full.encode() + body), self.app_window)
+            # log_request(self.command, self.path, len(full.encode() + body), self.app_window)
         except Exception as e:
             self.send_error(502, f"HTTP error: {e}")
 
@@ -126,4 +126,4 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
         self.tor_socks_port = tor_socks_port
 
 # ====== Logging ======
-def log_request(cmd, path, size=0, app_window=None): app_window.append_log(f"[{cmd}] {path} ({size} bytes)\n")
+# def log_request(cmd, path, size=0, app_window=None): app_window.append_log(f"[{cmd}] {path} ({size} bytes)\n")
