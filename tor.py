@@ -51,6 +51,9 @@ class TorRunner:
         with open(self.log_file, 'w') as f:
             for line in iter(self.proc.stdout.readline, b''):
                 f.write(line.decode()); f.flush()
+                if "Bootstrapped" in line.decode():
+                    lst =  line.decode().split(" ")
+                    self.app_window.data.value = lst[lst.index("Bootstrapped") + 1]
 
     def stop(self):
         if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None

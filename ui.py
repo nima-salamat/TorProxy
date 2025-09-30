@@ -20,7 +20,7 @@ import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
 
-from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property
+from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property, Signal, QObject
 from PySide6.QtGui import QPainter, QColor, QBrush, QAction
 import sys
 
@@ -115,13 +115,32 @@ class PulseButton(QPushButton):
     pulseRadius = Property(int, getPulseRadius, setPulseRadius)
 
 
+class Data(QObject):
+    valueChanged = Signal(str)
+
+    def __init__(self):
+        super().__init__()
+        self._value = ""
+
+    def get_value(self):
+        return self._value
+
+    def set_value(self, val):
+        if self._value != val:
+            self._value = val
+            self.valueChanged.emit(self._value)
+
+    value = property(get_value, set_value)
+            
 
 
 class ProxyWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.running = False
+        self.data = Data()
         
+        self.running = False
+        self._parent = parent
         self.tor_socks_port = get_free_port()
         self.proxy_port = get_free_port()
         print(f'port(proxy): {self.proxy_port} - port(socks): {self.tor_socks_port}')
@@ -136,17 +155,23 @@ class ProxyWindow(QWidget):
         self.connect_btn = PulseButton("Connect")
         self.connect_btn.clicked.connect(self._toggle)
         self.main_layout.addWidget(self.connect_btn)
-        
-
+        self.lbl_percent = QLabel("0%") 
+        self.main_layout.addWidget(self.lbl_percent)
+        self.data.valueChanged.connect(self.dataValueChanged)
+    
+    def dataValueChanged(self, v):
+        if v == "100%":
+            set_proxy(True, f"127.0.0.1:{self.proxy_port}")
+        self.lbl_percent.setText(str(v)+"")
     def _toggle(self):
         if not self.running:
             try:
                 self.proxy.start(); self.tor.start()
-                set_proxy(True, f"127.0.0.1:{self.proxy_port}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Start failed: {e}"); return
             self.running=True
         else:
+            self.lbl_percent.setText("0%")
             self.proxy.stop(); self.tor.stop(); set_proxy(False)
             self.running=False;
 class CustomTitleBar(QWidget):
@@ -276,7 +301,6 @@ class Window(QMainWindow):
         self.title_bar = CustomTitleBar(self)
         self.main_layout.addWidget(self.title_bar)
         self._createMenuBar()
-        
         self.main_layout.addWidget(self.stack)
     
     def closeEvent(self, event):
