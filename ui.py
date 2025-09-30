@@ -11,7 +11,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QPushButton,
-    QMessageBox
+    QMessageBox,
+    QCheckBox,
+    QTextEdit
 )
 
 import qdarkstyle
@@ -218,8 +220,30 @@ class SettingWindow(QWidget):
         mode_layout.addWidget(btn_light)
         btn_group_mode.addButton(btn_light)
         
+        btn_bridge = QCheckBox("bridge", self)
+        btn_bridge.stateChanged.connect(self.bridge_state_changed)
+        main_layout.addWidget(btn_bridge)
+        
+        self.inp_bridges = QTextEdit(self)
+        self.inp_bridges.setEnabled(False)
+        self.inp_bridges.textChanged.connect(self.set_bridges)
+        main_layout.addWidget(self.inp_bridges)
+        
         btn_group_mode.buttonClicked.connect(self.change_mode)
     
+    def set_bridges(self):
+        self._parent.proxyWidget.tor.bridges = self.inp_bridges.toPlainText()
+        
+    def bridge_state_changed(self, state):
+        if state==2:
+            self._parent.proxyWidget.tor.bridge = True
+            self.inp_bridges.setEnabled(True)
+        else: 
+            self._parent.proxyWidget.tor.bridge = False
+            self.inp_bridges.setEnabled(False)
+            
+    
+            
     def change_mode(self, radiobtn):
         if radiobtn.text() == "light":
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette()))
@@ -258,28 +282,26 @@ class Window(QMainWindow):
     def closeEvent(self, event):
         if self.running: self.proxy.stop(); self.tor.stop(); set_proxy(False)
         event.accept()
+
     def _createMenuBar(self):
         
         menuBar = QMenuBar(self)
         self.main_layout.addWidget(menuBar)
 
+       
         
-        fileMenu = QMenu("&File", self)
-        menuBar.addMenu(fileMenu)
-    
-        editMenu = QMenu("&Edit", self)
-        menuBar.addMenu(editMenu)
+        moreMenu = QMenu("More⬇️", self)
+        menuBar.addMenu(moreMenu)
+        setting_action = QAction("S&etting", self)
+        setting_action.setShortcut("Ctrl+E")
+        setting_action.triggered.connect(self._show_setting)
+        moreMenu.addAction(setting_action)
         
-        viewMenu = QMenu("&View", self)
-        menuBar.addMenu(viewMenu)
-        appearance_action = QAction("&Appearance", self)
-        appearance_action.setShortcut("Ctrl+E")
-        appearance_action.triggered.connect(self._show_appearance)
-        viewMenu.addAction(appearance_action)
-        helpMenu = QMenu("&Help", self)
-        menuBar.addMenu(helpMenu)
-        
-    def _show_appearance(self):
+        exit_action = QAction("Close", self)
+        exit_action.triggered.connect(self.close)
+        moreMenu.addAction(exit_action)
+
+    def _show_setting(self):
         self.stack.setCurrentIndex(1)
         
         
