@@ -49,6 +49,9 @@ class TorRunner:
                 
         with open("temp_torrc.txt", "w") as f: f.write(torrc_content)
         
+        
+        if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
+        
         flags = subprocess.CREATE_NO_WINDOW if platform.system()=="Windows" else 0
         self.proc = subprocess.Popen([tor_path, "-f", "temp_torrc.txt"],
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
