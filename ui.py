@@ -1,5 +1,4 @@
 from PySide6.QtWidgets import (
-    QApplication,
     QLabel,
     QMainWindow,
     QMenuBar,
@@ -385,9 +384,3 @@ class Window(QMainWindow):
         self.stack.setCurrentIndex(1)
         
         
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette())) 
-    win = Window()
-    win.show()
-    app.exec()
