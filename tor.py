@@ -17,12 +17,13 @@ geoip_path = resource_path("tor_bundle/data/geoip")
 geoip6_path = resource_path("tor_bundle/data/geoip6")
 
 class TorRunner:
-    def __init__(self, socks_port, contorl_port):
+    def __init__(self, socks_port, contorl_port, dns_port):
         self.proc = None; self.thread = None; self.log_file = "tor_log.txt"
         self.socks_port = socks_port
         self.bridge = False
         self.bridges = ""   
         self.contorl_port = contorl_port
+        self.dns_port = dns_port
 
         self.bridge_types = ["obfs4", "webtunnel", "meek", "snowflake", "scramblesuit", "fte"]
         
@@ -34,8 +35,9 @@ class TorRunner:
         
         torrc_content = f"SocksPort {self.socks_port}\nLog notice stdout\nControlPort {self.contorl_port}\n"
         torrc_content += 'GeoIPFile ' + geoip_path + '\n'
-        torrc_content += 'GeoIPv6File ' + geoip6_path + '\n'
-
+        torrc_content += 'GeoIPv6File ' + geoip6_path + '\n'        
+        torrc_content += 'DNSPort ' + str(self.dns_port) + '\n'
+        torrc_content += 'AutomapHostsOnResolve 1'+ '\n'
         
         if self.bridge and self.bridges:
             bridge_type = ""

@@ -228,8 +228,9 @@ class ProxyWindow(QWidget):
         self.tor_socks_port = get_free_port()
         self.proxy_port = get_free_port()
         self.tor_control_port = get_free_port()
-        print(f'port(proxy): {self.proxy_port} - port(socks): {self.tor_socks_port} - port(control): {self.tor_control_port}')
-        self.tor = TorRunner(self.tor_socks_port, self.tor_control_port)
+        self.tor_dns_port = get_free_port()
+        print(f'port(proxy): {self.proxy_port} - port(socks): {self.tor_socks_port} - port(control): {self.tor_control_port}, - port(dns): {self.tor_dns_port}')
+        self.tor = TorRunner(self.tor_socks_port, self.tor_control_port, self.tor_dns_port)
         self.tor.bridge = CONFIG["bridge"]
         self.tor.bridges = CONFIG["bridges"]
         self.tor.app_window = self
