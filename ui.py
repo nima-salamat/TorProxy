@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import (
+    QApplication,
     QLabel,
     QMainWindow,
     QMenuBar,
@@ -325,6 +326,7 @@ class SettingWindow(QWidget):
     
             
     def change_mode(self, radiobtn):
+        app = QApplication.instance()
         if radiobtn.text() == "light":
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette()))
         else:
