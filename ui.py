@@ -23,7 +23,8 @@ from qdarkstyle.light.palette import LightPalette
 from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property, Signal, QObject
 from PySide6.QtGui import QPainter, QColor, QBrush, QAction
 import sys
-
+from stem import Signal as TorSignal
+from stem.control import Controller
 from proxy import get_free_port, load_blocked, set_proxy, blocked_hosts, save_blocked
 
 from tor import TorRunner, Runner
@@ -143,11 +144,12 @@ class ProxyWindow(QWidget):
         self._parent = parent
         self.tor_socks_port = get_free_port()
         self.proxy_port = get_free_port()
+        self.tor_control_port = get_free_port()
         print(f'port(proxy): {self.proxy_port} - port(socks): {self.tor_socks_port}')
         
-        self.tor = TorRunner(self.tor_socks_port)
+        self.tor = TorRunner(self.tor_socks_port, self.tor_control_port)
         self.tor.app_window = self
-        self.proxy = Runner(self.proxy_port, self.tor_socks_port, self)
+        self.proxy = Runner(self.proxy_port, self.tor_socks_port,self)
         self.main_layout = QVBoxLayout(self)
         self.setLayout(self.main_layout)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -160,7 +162,22 @@ class ProxyWindow(QWidget):
         self.lbl_percent = QLabel("0%") 
         self.main_layout.addWidget(self.lbl_percent)
         self.data.valueChanged.connect(self.dataValueChanged)
+        self.btn_change_identity = QPushButton("change identity")
+        self.main_layout.addWidget(self.btn_change_identity)
+        self.btn_change_identity.clicked.connect(self.change_identity)
     
+
+    def change_identity(self):
+        try:
+            print(self.tor_control_port, type(self.tor_control_port))
+            with Controller.from_port(address="127.0.0.1", port=self.tor_control_port) as controller:
+                controller.authenticate()
+                controller.signal(TorSignal.NEWNYM)
+        except:
+            pass
+
+        
+        
     def dataValueChanged(self, v):
         if v == "100%":
             set_proxy(True, f"127.0.0.1:{self.proxy_port}")
