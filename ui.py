@@ -152,6 +152,7 @@ class ProxyWindow(QWidget):
         self.setLayout(self.main_layout)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.btn_status = QLabel("tap to connect")
+        self.set_btn_status_style("disconnected")
         self.main_layout.addWidget(self.btn_status)
         self.connect_btn = PulseButton("Connect")
         self.connect_btn.clicked.connect(self._toggle)
@@ -164,15 +165,40 @@ class ProxyWindow(QWidget):
         if v == "100%":
             set_proxy(True, f"127.0.0.1:{self.proxy_port}")
             self.btn_status.setText("connected")
+            self.set_btn_status_style("connected")
             
         self.lbl_percent.setText(str(v)+"")
+        
+        
+    def set_btn_status_style(self, stmt):
+        if stmt == "disconnected":
+            color = "#2ecc71"
+        else:
+            color = "#e74c3c"
+        
+        self.btn_status.setStyleSheet("""
+            QLabel {
+                color: white;
+                padding: 20px;
+                border-radius: 15px;
+                font-size: 18px;
+                font-weight: bold;
+                border: 4px solid %s;
+            }
+            QLabel:hover {
+                border: 4px solid #1B5E20;
+            }
+        """%(color))
+        
+        
     def _toggle(self):
         if not self.running:
             try:
                 self.proxy.start(); self.tor.start()
                 self.btn_status.setText("connecting . . .")
                 self.running = True
-                
+                self.set_btn_status_style("connecting")
+
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Start failed: {e}")
                 self.proxy.stop(); self.tor.stop()
@@ -183,6 +209,9 @@ class ProxyWindow(QWidget):
             self.proxy.stop(); self.tor.stop(); set_proxy(False)
             self.running = False
             self.btn_status.setText("disconnected")
+            self.set_btn_status_style("disconnected")
+            
+           
             
 class CustomTitleBar(QWidget):
     def __init__(self, parent=None):
