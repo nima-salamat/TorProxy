@@ -343,7 +343,7 @@ class Window(QMainWindow):
         self.main_layout.addWidget(self.stack)
     
     def closeEvent(self, event):
-        if self.proxyWidget.running: self.proxy.stop(); self.tor.stop(); set_proxy(False)
+        if self.proxyWidget.running: self.proxyWidget.proxy.stop(); self.proxyWidget.tor.stop(); set_proxy(False)
         event.accept()
 
     def _createMenuBar(self):
