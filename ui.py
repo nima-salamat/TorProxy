@@ -148,10 +148,11 @@ class ProxyWindow(QWidget):
         self.tor = TorRunner(self.tor_socks_port)
         self.tor.app_window = self
         self.proxy = Runner(self.proxy_port, self.tor_socks_port, self)
-        
         self.main_layout = QVBoxLayout(self)
         self.setLayout(self.main_layout)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.btn_status = QLabel("tap to connect")
+        self.main_layout.addWidget(self.btn_status)
         self.connect_btn = PulseButton("Connect")
         self.connect_btn.clicked.connect(self._toggle)
         self.main_layout.addWidget(self.connect_btn)
@@ -162,18 +163,27 @@ class ProxyWindow(QWidget):
     def dataValueChanged(self, v):
         if v == "100%":
             set_proxy(True, f"127.0.0.1:{self.proxy_port}")
+            self.btn_status.setText("connected")
+            
         self.lbl_percent.setText(str(v)+"")
     def _toggle(self):
         if not self.running:
             try:
                 self.proxy.start(); self.tor.start()
+                self.btn_status.setText("connecting . . .")
+                self.running = True
+                
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"Start failed: {e}"); return
-            self.running=True
+                QMessageBox.critical(self, "Error", f"Start failed: {e}")
+                self.proxy.stop(); self.tor.stop()
+                self.running = False 
+                return
         else:
             self.lbl_percent.setText("0%")
             self.proxy.stop(); self.tor.stop(); set_proxy(False)
-            self.running=False;
+            self.running = False
+            self.btn_status.setText("disconnected")
+            
 class CustomTitleBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
