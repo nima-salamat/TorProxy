@@ -21,10 +21,9 @@ class TorRunner:
         self.proc = None; self.thread = None; self.log_file = "tor_log.txt"
         self.socks_port = socks_port
         self.bridge = False
-        self.bridge_type = "obfs4"
         self.bridges = ""
 
-        self.bridge_types = ["obfs4"]
+        self.bridge_types = ["obfs4", "webtunnel", "meek", "snowflake", "scramblesuit", "fte"]
         
     def start(self):
         if self.proc: return
@@ -36,12 +35,18 @@ class TorRunner:
         torrc_content += 'GeoIPFile ' + geoip_path + '\n'
         torrc_content += 'GeoIPv6File ' + geoip6_path + '\n'
 
-        if self.bridge and self.bridges:
-            if self.bridge_type == "obfs4":    
-                torrc_content += 'UseBridges 1\n'
-                torrc_content += 'ClientTransportPlugin obfs4 exec '+ lyrebird_path +'\n'
-                torrc_content += self.bridges.replace("obfs4", "Bridge obfs4")
         
+        if self.bridge and self.bridges:
+            bridge_type = ""
+            for i in self.bridge_types:
+                if i in self.bridges:
+                    bridge_type = i
+                    break
+            if bridge_type:
+                torrc_content += 'UseBridges 1\n'
+                torrc_content += 'ClientTransportPlugin %s exec '%(bridge_type)+ lyrebird_path +'\n'
+                torrc_content += self.bridges.replace(bridge_type, "Bridge %s"%(bridge_type))
+                
         with open("temp_torrc.txt", "w") as f: f.write(torrc_content)
         
         flags = subprocess.CREATE_NO_WINDOW if platform.system()=="Windows" else 0
