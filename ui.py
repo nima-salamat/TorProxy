@@ -28,7 +28,79 @@ from stem.control import Controller
 from proxy import get_free_port, load_blocked, set_proxy, blocked_hosts, save_blocked
 
 from tor import TorRunner, Runner
+import os
+import json
 
+
+
+class Config:
+    file_config = "config.json"
+    default_data = {"bridges": "", "bridge":False, "mode": "dark"}
+    data = {"bridges": "", "bridge":False, "mode": "dark"}
+    
+    def __getitem__(self, name):
+        if name in self.default_data:
+            return self.data.get(name, None) or self.default_data[name]
+        return None
+    
+    def __setitem__(self, name, value):
+        self.data[name] = value
+        self.save()
+        
+    def __getattr__(self, name):
+        if name in ["bridges", "bridge", "mode"]:
+            return self[name]
+        return super().__getattr__(name)
+    
+    def __setattr__(self, name, value):
+        if name in ["bridges", "bridge", "mode"]:
+            self[name] = value
+            return
+        super().__setattr__(name, value)        
+        
+    @staticmethod
+    def create_if_is_not_exits(fun):
+        def inner_function(*args, **kwargs):
+            
+            dir_ = os.path.dirname(__file__)
+            file_path = os.path.join(dir_, Config.file_config)
+            
+            if not os.path.exists(file_path):
+                open(file_path, "w").close()
+                
+            return fun(*args, **kwargs)
+            
+        return inner_function    
+    
+    def save_config(self, data):
+        with open(self.file_config, "w") as file:
+            file.write(data)
+
+    @create_if_is_not_exits
+    def get_config(self):
+        with open(self.file_config, "r") as file:
+            return file.read()
+    
+    def json_format(self, data):
+        try:
+            return json.loads(data)
+        except json.JSONDecodeError:
+            return self.default_data
+
+    def json_to_text(self, data):
+        return json.dumps(data)
+        
+    
+    def load(self):
+        data = self.get_config()
+        self.data = self.json_format(data)
+        return self.data
+
+    def save(self):
+        data = self.json_to_text(self.data)
+        self.save_config(data)
+        
+CONFIG = Config()
 
 class PulseButton(QPushButton):
     def __init__(self, text):
@@ -145,9 +217,10 @@ class ProxyWindow(QWidget):
         self.tor_socks_port = get_free_port()
         self.proxy_port = get_free_port()
         self.tor_control_port = get_free_port()
-        print(f'port(proxy): {self.proxy_port} - port(socks): {self.tor_socks_port}')
-        
+        print(f'port(proxy): {self.proxy_port} - port(socks): {self.tor_socks_port} - port(control): {self.tor_control_port}')
         self.tor = TorRunner(self.tor_socks_port, self.tor_control_port)
+        self.tor.bridge = CONFIG["bridge"]
+        self.tor.bridges = CONFIG["bridges"]
         self.tor.app_window = self
         self.proxy = Runner(self.proxy_port, self.tor_socks_port,self)
         self.main_layout = QVBoxLayout(self)
@@ -195,7 +268,6 @@ class ProxyWindow(QWidget):
         
         self.btn_status.setStyleSheet("""
             QLabel {
-                color: white;
                 padding: 20px;
                 border-radius: 15px;
                 font-size: 18px;
@@ -293,20 +365,24 @@ class SettingWindow(QWidget):
         btn_group_mode = QButtonGroup(self) 
         
         btn_dark = QRadioButton("dark", self)
-        btn_dark.setChecked(True) # default mode 
+        btn_dark.setChecked(CONFIG["mode"]!="light")
         mode_layout.addWidget(btn_dark)
         btn_group_mode.addButton(btn_dark)
         
         btn_light = QRadioButton("light", self)
+        btn_light.setChecked(CONFIG["mode"]=="light")
+        
         mode_layout.addWidget(btn_light)
         btn_group_mode.addButton(btn_light)
         
         btn_bridge = QCheckBox("bridge", self)
+        btn_bridge.setChecked(CONFIG.bridge)
         btn_bridge.stateChanged.connect(self.bridge_state_changed)
         main_layout.addWidget(btn_bridge)
         
         self.inp_bridges = QTextEdit(self)
-        self.inp_bridges.setEnabled(False)
+        self.inp_bridges.setText(CONFIG.bridges)
+        self.inp_bridges.setEnabled(CONFIG.bridge)
         self.inp_bridges.textChanged.connect(self.set_bridges)
         main_layout.addWidget(self.inp_bridges)
         
@@ -314,23 +390,36 @@ class SettingWindow(QWidget):
     
     def set_bridges(self):
         self._parent.proxyWidget.tor.bridges = self.inp_bridges.toPlainText()
+        CONFIG.bridges = self.inp_bridges.toPlainText()
+        
+        
         
     def bridge_state_changed(self, state):
         if state==2:
             self._parent.proxyWidget.tor.bridge = True
             self.inp_bridges.setEnabled(True)
+            CONFIG.bridge = True
         else: 
             self._parent.proxyWidget.tor.bridge = False
             self.inp_bridges.setEnabled(False)
+            CONFIG.bridge = False
+            
             
     
             
     def change_mode(self, radiobtn):
         app = QApplication.instance()
+        print("hey")
         if radiobtn.text() == "light":
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette()))
+            
+            CONFIG.mode = "light"
+            
         else:
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
+            CONFIG.mode= "dark"
+            
+        
             
     def back_to_proxy(self):
         self._parent.stack.setCurrentIndex(0)
