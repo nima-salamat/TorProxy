@@ -20,7 +20,7 @@ import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
 
-from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property, Signal, QObject
+from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property, Signal, QObject, QTimer, QRunnable, Slot, QThreadPool
 from PySide6.QtGui import QPainter, QColor, QBrush, QAction
 import sys
 from stem import Signal as TorSignal
@@ -30,7 +30,6 @@ from proxy import get_free_port, load_blocked, set_proxy, blocked_hosts, save_bl
 from tor import TorRunner, Runner
 import os
 import json
-
 
 
 class Config:
@@ -204,14 +203,26 @@ class Data(QObject):
             self.valueChanged.emit(self._value)
 
     value = property(get_value, set_value)
-            
+    
+    
+class Worker(QRunnable):
+    
+    def __init__(self, fn, *args, **kwargs):
+        super().__init__()
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+    
+    @Slot()
+    def run(self):
+        self.fn(*self.args, **self.kwargs)      
 
 
 class ProxyWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.data = Data()
-        
+        self.threadpool = QThreadPool()
         self.running = False
         self._parent = parent
         self.tor_socks_port = get_free_port()
@@ -238,18 +249,26 @@ class ProxyWindow(QWidget):
         self.btn_change_identity = QPushButton("change identity")
         self.main_layout.addWidget(self.btn_change_identity)
         self.btn_change_identity.clicked.connect(self.change_identity)
-    
+        self.timer = QTimer()
+        self.timer.setInterval(30000)
+        self.timer.timeout.connect(self.change_identity_)
+        self.timer.start()
+        
+    def change_identity_(self):
+        worker = Worker(
+            self.change_identity
+        )
+        self.threadpool.start(worker)
 
     def change_identity(self):
-        try:
-            print(self.tor_control_port, type(self.tor_control_port))
-            with Controller.from_port(address="127.0.0.1", port=self.tor_control_port) as controller:
-                controller.authenticate()
-                controller.signal(TorSignal.NEWNYM)
-        except:
-            pass
-
-        
+        if self.running:
+            try:
+                print(self.tor_control_port, type(self.tor_control_port))
+                with Controller.from_port(address="127.0.0.1", port=self.tor_control_port) as controller:
+                    controller.authenticate()
+                    controller.signal(TorSignal.NEWNYM)
+            except:
+                pass      
         
     def dataValueChanged(self, v):
         if v == "100%":
