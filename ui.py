@@ -13,7 +13,9 @@ from PySide6.QtWidgets import (
     QPushButton,
     QMessageBox,
     QCheckBox,
-    QTextEdit
+    QTextEdit,
+    QListWidget,
+    QLineEdit
 )
 
 import qdarkstyle
@@ -25,7 +27,7 @@ from PySide6.QtGui import QPainter, QColor, QBrush, QAction
 import sys
 from stem import Signal as TorSignal
 from stem.control import Controller
-from proxy import get_free_port, load_blocked, set_proxy, blocked_hosts, save_blocked
+from proxy import get_free_port, load_blocked, set_proxy, remove_blocked, save_blocked, add_to_blocked_hosts, get_blocked
 
 from tor import TorRunner, Runner
 import os
@@ -411,9 +413,7 @@ class SettingWindow(QWidget):
     def set_bridges(self):
         self._parent.proxyWidget.tor.bridges = self.inp_bridges.toPlainText()
         CONFIG.bridges = self.inp_bridges.toPlainText()
-        
-        
-        
+         
     def bridge_state_changed(self, state):
         if state==2:
             self._parent.proxyWidget.tor.bridge = True
@@ -423,9 +423,6 @@ class SettingWindow(QWidget):
             self._parent.proxyWidget.tor.bridge = False
             self.inp_bridges.setEnabled(False)
             CONFIG.bridge = False
-            
-            
-    
             
     def change_mode(self, radiobtn):
         app = QApplication.instance()
@@ -443,7 +440,65 @@ class SettingWindow(QWidget):
             
     def back_to_proxy(self):
         self._parent.stack.setCurrentIndex(0)
+
+class BlcokHostsWindow(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent) 
+        self._parent = parent    
+        main_layout = QVBoxLayout(self)
+        self.setLayout(main_layout)
         
+        load_blocked()
+
+        self.hosts_list = QListWidget()
+        main_layout.addWidget(self.hosts_list)
+        self.hosts_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.hosts_list.customContextMenuRequested.connect(self.show_context_menu)
+
+        self._update_hosts_list()
+        
+        self.inp_host = QLineEdit()
+        self.inp_host.setPlaceholderText("Enter a host like 'example.com'")
+        main_layout.addWidget(self.inp_host)
+
+        self.btn_add = QPushButton("Add")
+        main_layout.addWidget(self.btn_add)
+        self.btn_add.clicked.connect(self.add_to_list)
+        
+        self.threadpool = QThreadPool()
+        
+    def show_context_menu(self, pos):
+        item = self.hosts_list.itemAt(pos)
+        if item:
+            reply = QMessageBox.question(
+                self,
+                "Confirm Delete",
+                f"Do you want to remove '{item.text()}'?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                remove_blocked(item.text())
+                self.hosts_list.takeItem(self.hosts_list.row(item))
+                worker = Worker(
+                    save_blocked
+                )
+                self.threadpool.start(worker)
+    
+    def _update_hosts_list(self):
+        self.hosts_list.clear()
+        for host in get_blocked():
+            self.hosts_list.addItem(host)
+        
+    def add_to_list(self):
+        host = self.inp_host.text()
+        print(host)
+        if add_to_blocked_hosts(host):
+            worker = Worker(
+                save_blocked
+            )
+            self.threadpool.start(worker)
+            self.hosts_list.addItem(host)
 
 class Window(QMainWindow):
     def __init__(self):
@@ -462,8 +517,13 @@ class Window(QMainWindow):
         
         self.proxyWidget = ProxyWindow(self)
         self.stack.addWidget(self.proxyWidget)
+        
         self.settingWidget = SettingWindow(self)
         self.stack.addWidget(self.settingWidget)
+        
+        self.block_host_window = BlcokHostsWindow(self)
+        self.stack.addWidget(self.block_host_window)
+        
         self.title_bar = CustomTitleBar(self)
         self.main_layout.addWidget(self.title_bar)
         self._createMenuBar()
@@ -474,24 +534,40 @@ class Window(QMainWindow):
         event.accept()
 
     def _createMenuBar(self):
-        
         menuBar = QMenuBar(self)
         self.main_layout.addWidget(menuBar)
-
-       
         
         moreMenu = QMenu("More⬇️", self)
         menuBar.addMenu(moreMenu)
-        setting_action = QAction("S&etting", self)
-        setting_action.setShortcut("Ctrl+E")
+        
+        
+        home_action = QAction("Home", self)
+        home_action.triggered.connect(self._show_home)
+        home_action.setShortcut("Ctrl+H")
+        moreMenu.addAction(home_action)
+        
+        setting_action = QAction("&Setting", self)
+        setting_action.setShortcut("Ctrl+S")
         setting_action.triggered.connect(self._show_setting)
         moreMenu.addAction(setting_action)
         
-        exit_action = QAction("Close", self)
+        block_action = QAction("Block Host", self)
+        block_action.triggered.connect(self._show_block_host)
+        block_action.setShortcut("Ctrl+B")
+        moreMenu.addAction(block_action)
+        
+        exit_action = QAction("Quit", self)
+        exit_action.setShortcut("Ctrl+Q")        
         exit_action.triggered.connect(self.close)
         moreMenu.addAction(exit_action)
+        
+    def _show_home(self):
+        self.stack.setCurrentIndex(0)
 
     def _show_setting(self):
         self.stack.setCurrentIndex(1)
+    
+    def _show_block_host(self):
+        self.stack.setCurrentIndex(2)
         
         

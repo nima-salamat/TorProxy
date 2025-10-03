@@ -23,13 +23,26 @@ def load_blocked():
     global blocked_hosts
     if os.path.exists(BLOCKED_FILE):
         try:
-            with open(BLOCKED_FILE, 'r') as f:
+            with open(BLOCKED_FILE, 'r') as f:              
                 blocked_hosts = json.load(f)
         except:
+            print('error in loading blocked hosts')
             blocked_hosts = []
     else:
         blocked_hosts = []
 
+def add_to_blocked_hosts(host):
+    if host not in blocked_hosts:
+            blocked_hosts.append(host)
+            return True
+    return False
+
+def get_blocked():
+    return blocked_hosts
+
+def remove_blocked(host):
+    blocked_hosts.remove(host)
+    
 def save_blocked():
     with open(BLOCKED_FILE, 'w') as f:
         json.dump(blocked_hosts, f, indent=2)
@@ -54,7 +67,14 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_CONNECT(self):
         host, port = self.path.split(":")
         port = int(port)
-        if host in blocked_hosts:
+                
+        for i in blocked_hosts:
+            if i.startswith("*"):
+                if host.endswith(i[1:]):
+                    self.send_error(403, "Forbidden: Blocked")
+                    return
+    
+        if host in blocked_hosts or any([host.endswith(i) for i in blocked_hosts]):
             self.send_error(403, "Forbidden: Blocked")
             return
         try:
