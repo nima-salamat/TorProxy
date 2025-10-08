@@ -1,0 +1,14 @@
+SocksPort 56259
+Log notice stdout
+ControlPort 56261
+GeoIPFile d:\div_7\torProxy\tor_bundle/data/geoip
+GeoIPv6File d:\div_7\torProxy\tor_bundle/data/geoip6
+DNSPort 56262
+AutomapHostsOnResolve 1
+MaxCircuitDirtiness 300
+UseBridges 1
+ClientTransportPlugin obfs4 exec d:\div_7\torProxy\tor_bundle/tor/pluggable_transports/lyrebird.exe
+Bridge obfs4 76.67.110.46:44673 B8D5C64D0C1366E4F69579135C40665FC35964D5 cert=JJsYcmGdbK9X+hrdFiAXNSR4l+rp71O1cmf82RjIXsocqCYaziyBqFBj/ij62tNiMZmyXg iat-mode=0
+Bridge obfs4 188.166.124.140:33022 DD211C741869CACF1440BDBBDC79C181404B2B15 cert=XJm5SnCqRnklS8oSFgSu+p0AT3gRTvx4RmTOiLx/sF0RHg5LhgQUhpL4FxITQuMmtXzcQw iat-mode=0
+Bridge obfs4 138.199.220.200:22884 B5ECD5289F4F663B9A4C468D36CCFFD312FE77CD cert=xpoNaNFgDPxfa3SKpVrrNp7fSJiTVmzrwLZhIAN8KD/b1O8EL8w3qO5+Msjo9y5AxI3iSA iat-mode=0
+Bridge obfs4 49.13.126.113:17521 547A3A858B92D28C584FD0DA3B1E932467B244BA cert=j5iBsig0Q0FWbyzOBRAcqoO3vZ6FSgvfsYV2Fv3sDBlkA6lrzsu5G4NNcZJWnsa8HXC9cg iat-mode=0

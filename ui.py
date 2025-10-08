@@ -15,9 +15,10 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QTextEdit,
     QListWidget,
-    QLineEdit
+    QLineEdit,
+    QSystemTrayIcon
 )
-
+from PySide6.QtGui import QIcon
 import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
@@ -328,7 +329,7 @@ class CustomTitleBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(40)
-
+        self.parent_ = parent
         self.title = QLabel("T⭕®️🌐🅿️®️⭕❌Y")
         self.title.setStyleSheet("margin-left: 10px;")
         
@@ -339,7 +340,7 @@ class CustomTitleBar(QWidget):
             btn.setFixedSize(30, 30)
 
         self.btn_min.clicked.connect(lambda: parent.showMinimized())
-        self.btn_close.clicked.connect(parent.close)
+        self.btn_close.clicked.connect(self.parent_.show_tray)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -585,6 +586,26 @@ class Window(QMainWindow):
         self.main_layout.addWidget(self.title_bar)
         self._createMenuBar()
         self.main_layout.addWidget(self.stack)
+        
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(QIcon("assets/icon.png"))
+        
+        tray_menu = QMenu()
+        quit_action = QAction("Quit", self)
+        quit_action.triggered.connect(QApplication.quit)
+        tray_menu.addAction(quit_action)
+
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.activated.connect(self.show_window)
+
+
+    def show_tray(self):
+        self.tray_icon.show()
+        self.hide()
+    
+    def show_window(self):
+        self.show()
+        self.tray_icon.hide() 
     
     def closeEvent(self, event):
         if self.proxyWidget.running: self.proxyWidget.proxy.stop(); self.proxyWidget.tor.stop(); set_proxy(False)
