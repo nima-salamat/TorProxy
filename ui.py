@@ -499,6 +499,10 @@ class BlcokHostsWindow(QWidget):
             )
             self.threadpool.start(worker)
             self.hosts_list.addItem(host)
+            self.inp_host.clear()
+            self.inp_host.setFocus()
+            
+            
 
 class Window(QMainWindow):
     def __init__(self):
