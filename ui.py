@@ -603,9 +603,10 @@ class Window(QMainWindow):
         self.tray_icon.show()
         self.hide()
     
-    def show_window(self):
-        self.show()
-        self.tray_icon.hide() 
+    def show_window(self, reason):
+        if reason == QSystemTrayIcon.Trigger:
+            self.show()
+            self.tray_icon.hide() 
     
     def closeEvent(self, event):
         if self.proxyWidget.running: self.proxyWidget.proxy.stop(); self.proxyWidget.tor.stop(); set_proxy(False)
