@@ -67,6 +67,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_CONNECT(self):
         host, port = self.path.split(":")
         port = int(port)
+        print(host)
                 
         for i in blocked_hosts:
             if i.startswith("*"):
@@ -74,7 +75,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     self.send_error(403, "Forbidden: Blocked")
                     return
     
-        if host in blocked_hosts or any([host.endswith(i) for i in blocked_hosts]):
+        if host in blocked_hosts or any([host.endswith("."+i) for i in blocked_hosts]):
             self.send_error(403, "Forbidden: Blocked")
             return
         try:
@@ -95,18 +96,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         parsed = urlsplit(self.path)
         host = parsed.hostname
         port = parsed.port or 80
-        
-        for i in blocked_hosts:
-            if i.startswith("*") and "." in i:
-                if host.endswith(i.split(".")[-1]):
-                    
-                    self.send_error(403, "Forbidden: Blocked")
-                    return
-            elif host in i:
-                self.send_error(403, "Forbidden: Blocked")
-                return
-                 
-                           
+                         
         try:
             remote = socks.socksocket()
             remote.set_proxy(socks.SOCKS5, "127.0.0.1", self.server.tor_socks_port, rdns=True)
