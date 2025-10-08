@@ -252,10 +252,10 @@ class ProxyWindow(QWidget):
         self.btn_change_identity = QPushButton("change identity")
         self.main_layout.addWidget(self.btn_change_identity)
         self.btn_change_identity.clicked.connect(self.change_identity_)
-        # self.timer = QTimer()
-        # self.timer.setInterval(30000)
-        # self.timer.timeout.connect(self.change_identity_)
-        # self.timer.start()
+        self.timer = QTimer()
+        self.timer.setInterval(30000)
+        self.timer.timeout.connect(self.change_identity_)
+        self.timer.start()
         
     def change_identity_(self):
         worker = Worker(
@@ -402,13 +402,66 @@ class SettingWindow(QWidget):
         btn_bridge.stateChanged.connect(self.bridge_state_changed)
         main_layout.addWidget(btn_bridge)
         
-        self.inp_bridges = QTextEdit(self)
+        self.inp_bridges = QTextEdit(self,placeholderText="Enter your bridges . . . (obfs4 or webtunnel)")
         self.inp_bridges.setText(CONFIG.bridges)
         self.inp_bridges.setEnabled(CONFIG.bridge)
         self.inp_bridges.textChanged.connect(self.set_bridges)
         main_layout.addWidget(self.inp_bridges)
-        
         btn_group_mode.buttonClicked.connect(self.change_mode)
+        
+        max_circuit_dirtiness_layout = QHBoxLayout()
+        max_circuit_dirtiness_layout.addWidget(QLabel("MaxCircuitDirtiness  "))
+        main_layout.addLayout(max_circuit_dirtiness_layout)
+        
+        self.inp_MaxCircuitDirtiness = QLineEdit(str(self._parent.proxyWidget.tor.MaxCircuitDirtiness))
+        
+        max_circuit_dirtiness_layout.addWidget(self.inp_MaxCircuitDirtiness)
+        self.inp_MaxCircuitDirtiness.textChanged.connect(self.MaxCircuitDirtiness_changed)
+        
+        self.lbl_MaxCircuitDirtiness = QLabel("✅")
+        max_circuit_dirtiness_layout.addWidget(self.lbl_MaxCircuitDirtiness)
+        
+        
+        newnym_layout = QHBoxLayout()
+        main_layout.addLayout(newnym_layout)
+        newnym_layout.addWidget(QLabel("SIGNAL NEWNYM sends every"))
+        self.newnym_inp = QLineEdit(str(self._parent.proxyWidget.timer.interval()))
+        newnym_layout.addWidget(self.newnym_inp)
+        self.newnym_inp.textChanged.connect(self.newnym_inp_changed)
+        newnym_layout.addWidget(QLabel("mili sec"))
+        self.newnym_lbl_stat = QLabel(f"({self._parent.proxyWidget.timer.interval()//1000} sec)  ✅")
+        newnym_layout.addWidget(self.newnym_lbl_stat)
+        
+        
+    def newnym_inp_changed(self):
+        text = self.newnym_inp.text()
+        if text and all([i in "0123456789" for i in text]) and 0 < int(text) < 2_147_483_647: # 2_147_483_647 4 byte signed int
+            try:
+                self._parent.proxyWidget.timer.setInterval(int(text))
+                self.newnym_lbl_stat.setText(f"({self._parent.proxyWidget.timer.interval()//1000} sec)  ✅")
+            except OverflowError:
+                print(text)
+        else:
+            self.newnym_lbl_stat.setText("❌")
+            
+            
+            
+        
+        
+        
+        
+    
+    def MaxCircuitDirtiness_changed(self):
+        text = self.inp_MaxCircuitDirtiness.text()
+        if  text and all([i in "0123456789" for i in text]):
+            self._parent.proxyWidget.tor.MaxCircuitDirtiness = int(text)
+            self.lbl_MaxCircuitDirtiness.setText("✅")
+        else:
+            self.lbl_MaxCircuitDirtiness.setText("❌")
+             
+            
+        
+            
     
     def set_bridges(self):
         self._parent.proxyWidget.tor.bridges = self.inp_bridges.toPlainText()

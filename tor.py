@@ -24,6 +24,7 @@ class TorRunner:
         self.bridges = ""   
         self.contorl_port = contorl_port
         self.dns_port = dns_port
+        self.MaxCircuitDirtiness = 300
 
         self.bridge_types = ["obfs4", "webtunnel", "meek", "snowflake", "scramblesuit", "fte"]
         
@@ -38,6 +39,8 @@ class TorRunner:
         torrc_content += 'GeoIPv6File ' + geoip6_path + '\n'        
         torrc_content += 'DNSPort ' + str(self.dns_port) + '\n'
         torrc_content += 'AutomapHostsOnResolve 1'+ '\n'
+        torrc_content += 'MaxCircuitDirtiness ' + str(self.MaxCircuitDirtiness) + '\n'
+        
         
         if self.bridge and self.bridges:
             bridge_type = ""
