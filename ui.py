@@ -251,11 +251,11 @@ class ProxyWindow(QWidget):
         self.data.valueChanged.connect(self.dataValueChanged)
         self.btn_change_identity = QPushButton("change identity")
         self.main_layout.addWidget(self.btn_change_identity)
-        self.btn_change_identity.clicked.connect(self.change_identity)
-        self.timer = QTimer()
-        self.timer.setInterval(30000)
-        self.timer.timeout.connect(self.change_identity_)
-        self.timer.start()
+        self.btn_change_identity.clicked.connect(self.change_identity_)
+        # self.timer = QTimer()
+        # self.timer.setInterval(30000)
+        # self.timer.timeout.connect(self.change_identity_)
+        # self.timer.start()
         
     def change_identity_(self):
         worker = Worker(
