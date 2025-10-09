@@ -37,7 +37,6 @@ import json
 import cv2
 from pyzbar.pyzbar import decode
 import numpy
-import time
 
 
 class Config:
@@ -546,7 +545,6 @@ class SettingWindow(QWidget):
             self.qrcode_widget.move(80, 0)
             self.qrcode_widget.show()
             self.qrcode_widget.timer.start(30)
-            
         self.btn_qrcode.setEnabled(True) 
         
     def newnym_inp_changed(self):
