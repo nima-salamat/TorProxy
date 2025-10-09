@@ -18,7 +18,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QSystemTrayIcon
 )
-from PySide6.QtGui import QIcon
+
+from PySide6.QtGui import QIcon, QImage, QPixmap
 import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
@@ -33,6 +34,10 @@ from proxy import get_free_port, load_blocked, set_proxy, remove_blocked, save_b
 from tor import TorRunner, Runner
 import os
 import json
+import cv2
+from pyzbar.pyzbar import decode
+import numpy
+import time
 
 
 class Config:
@@ -207,18 +212,33 @@ class Data(QObject):
 
     value = property(get_value, set_value)
     
+
+class QRWorkerSignals(QObject):
+    started = Signal()
+    finished = Signal()
+    error = Signal(str)
+
+
     
 class Worker(QRunnable):
-    
+
     def __init__(self, fn, *args, **kwargs):
         super().__init__()
         self.fn = fn
         self.args = args
         self.kwargs = kwargs
+        self.signals = QRWorkerSignals()
+
     
     @Slot()
     def run(self):
-        self.fn(*self.args, **self.kwargs)      
+        
+        try:
+            self.signals.started.emit()
+            self.fn(*self.args, **self.kwargs)      
+            self.signals.finished.emit()
+        except Exception as e:
+            self.signals.error.emit(str(e))
 
 
 class ProxyWindow(QWidget):
@@ -363,7 +383,75 @@ class CustomTitleBar(QWidget):
 
     def mouseReleaseEvent(self, event):
         self._start_pos = None
+    
+
+class QrCodeFloatingWindow(QWidget):
+    def __init__(self, parent=None):
+        super().__init__()
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.parent_ = parent
+        self.cap = None
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_frame)
         
+        self.data = None
+        
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+        
+        self.camera_label = QLabel() 
+        self.camera_label.setAlignment(Qt.AlignCenter)
+        self.camera_label.setMinimumSize(640, 480)
+        self.main_layout.addWidget(self.camera_label)
+        
+        self.btn_close = QPushButton("close")
+        self.btn_close.clicked.connect(self.close)
+        self.main_layout.addWidget(self.btn_close)
+        
+    
+    def update_frame(self):
+        ret, frame = self.cap.read()
+        if not ret:
+            QMessageBox.warning(self, "", "Error in reading frame")
+            self.close()
+
+        frame  = numpy.flip(frame, (1))
+            
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        decoded_objects = decode(rgb_frame)
+        
+        for obj in decoded_objects:
+            try:
+                data = obj.data.decode('utf-8')
+                self.process_qr_code(data, frame, obj)
+            except Exception as e:
+                print(f"Error decoding QR: {e}")
+                
+        h, w, ch = rgb_frame.shape
+        bytes_per_line = ch * w
+        qt_image = QImage(rgb_frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        self.camera_label.setPixmap(QPixmap.fromImage(qt_image).scaled(
+            self.camera_label.width(), 
+            self.camera_label.height(),
+            Qt.KeepAspectRatio
+        ))
+    
+    def run(self):
+        self.cap = cv2.VideoCapture(0)
+    
+    def process_qr_code(self, data, *args):
+        self.data = data
+        QMessageBox.information(self, "QR Code Detected!", "Ok")
+        self.close()
+      
+    def close(self):
+        self.cap.release()
+        self.timer.stop()
+        if self.data is not None:
+            self.parent_.inp_bridges.setText("\n".join(json.loads(self.data)))
+        super().close()
 
         
 class SettingWindow(QWidget):
@@ -379,6 +467,7 @@ class SettingWindow(QWidget):
         btn_back = QPushButton("back", self)
         top_layout.addWidget(btn_back)
 
+        
         btn_back.clicked.connect(self.back_to_proxy)
         
 
@@ -409,6 +498,9 @@ class SettingWindow(QWidget):
         self.inp_bridges.textChanged.connect(self.set_bridges)
         main_layout.addWidget(self.inp_bridges)
         btn_group_mode.buttonClicked.connect(self.change_mode)
+        self.btn_qrcode = QPushButton("Qr-Code")
+        self.btn_qrcode.clicked.connect(self.show_qrcode)
+        main_layout.addWidget(self.btn_qrcode)
         
         max_circuit_dirtiness_layout = QHBoxLayout()
         max_circuit_dirtiness_layout.addWidget(QLabel("MaxCircuitDirtiness  "))
@@ -432,7 +524,30 @@ class SettingWindow(QWidget):
         newnym_layout.addWidget(QLabel("mili sec"))
         self.newnym_lbl_stat = QLabel(f"({self._parent.proxyWidget.timer.interval()//1000} sec)  ✅")
         newnym_layout.addWidget(self.newnym_lbl_stat)
+        self.qrcode_widget = QrCodeFloatingWindow(self)
+
+      
+        self.threadpool = QThreadPool()
         
+        
+    def show_qrcode(self):
+     
+        worker = Worker(self.qrcode_widget.run)
+        worker.signals.finished.connect(self.show_qrcode_widget)
+        worker.signals.error.connect(self.show_qrcode_widget)
+
+        self.threadpool.start(worker)
+
+        self.btn_qrcode.setDisabled(True)
+        
+    def show_qrcode_widget(self, *args):
+        if not args: 
+            self.qrcode_widget.setParent(self)        
+            self.qrcode_widget.move(80, 0)
+            self.qrcode_widget.show()
+            self.qrcode_widget.timer.start(30)
+            
+        self.btn_qrcode.setEnabled(True) 
         
     def newnym_inp_changed(self):
         text = self.newnym_inp.text()
@@ -444,14 +559,7 @@ class SettingWindow(QWidget):
                 print(text)
         else:
             self.newnym_lbl_stat.setText("❌")
-            
-            
-            
-        
-        
-        
-        
-    
+
     def MaxCircuitDirtiness_changed(self):
         text = self.inp_MaxCircuitDirtiness.text()
         if  text and all([i in "0123456789" for i in text]):
@@ -459,10 +567,6 @@ class SettingWindow(QWidget):
             self.lbl_MaxCircuitDirtiness.setText("✅")
         else:
             self.lbl_MaxCircuitDirtiness.setText("❌")
-             
-            
-        
-            
     
     def set_bridges(self):
         self._parent.proxyWidget.tor.bridges = self.inp_bridges.toPlainText()
