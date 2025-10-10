@@ -541,14 +541,7 @@ class SettingWindow(QWidget):
         self.setLayout(main_layout)
 
         top_layout = QHBoxLayout(self)
-        main_layout.addLayout(top_layout)
-
-        btn_back = QPushButton("back", self)
-        top_layout.addWidget(btn_back)
-
-        
-        btn_back.clicked.connect(self.back_to_proxy)
-        
+        main_layout.addLayout(top_layout)  
 
         mode_layout = QHBoxLayout(self)
         main_layout.addLayout(mode_layout)
@@ -672,10 +665,6 @@ class SettingWindow(QWidget):
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
             CONFIG.mode= "dark"
             
-        
-            
-    def back_to_proxy(self):
-        self._parent.stack.setCurrentIndex(0)
 
 class BlcokHostsWindow(QWidget):
     def __init__(self, parent=None):
