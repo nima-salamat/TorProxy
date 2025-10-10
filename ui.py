@@ -866,6 +866,7 @@ class Window(QMainWindow):
             "Keyboard Shortcuts",
             (
                 "<b>Keyboard Shortcuts:</b><br><br>"
+                "Alt + Ctrol + P → Hide/Show Hotkey"
                 "Ctrl + H → Home<br>"
                 "Ctrl + S → Setting<br>"
                 "Ctrl + B → Block Host<br>"
