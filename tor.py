@@ -16,6 +16,7 @@ lyrebird_path = resource_path("tor_bundle/tor/pluggable_transports/lyrebird.exe"
 geoip_path = resource_path("tor_bundle/data/geoip")
 geoip6_path = resource_path("tor_bundle/data/geoip6")
 
+
 class TorRunner:
     def __init__(self, socks_port, contorl_port, dns_port):
         self.proc = None; self.thread = None; self.log_file = "tor_log.txt"
@@ -68,6 +69,7 @@ class TorRunner:
                 if "Bootstrapped" in line.decode():
                     lst =  line.decode().split(" ")
                     self.app_window.data.value = lst[lst.index("Bootstrapped") + 1]
+                    self.app_window.logs_widget.update_log(line.decode())
 
     def stop(self):
         if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
