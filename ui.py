@@ -309,6 +309,7 @@ class ProxyWindow(QWidget):
         self.data = Data()
         self.threadpool = QThreadPool()
         self.running = False
+        self.connected = False
         self._parent = parent
         self.tor_socks_port = get_free_port()
         self.proxy_port = get_free_port()
@@ -357,7 +358,7 @@ class ProxyWindow(QWidget):
         self.threadpool.start(worker)
 
     def change_identity(self):
-        if self.running:
+        if self.connected:
             try:
                 print(self.tor_control_port, type(self.tor_control_port))
                 with Controller.from_port(address="127.0.0.1", port=self.tor_control_port) as controller:
@@ -368,7 +369,7 @@ class ProxyWindow(QWidget):
         
     def dataValueChanged(self, v):
         if v == "100%":
-            self.running = True
+            self.connected = True
             set_proxy(True, f"127.0.0.1:{self.proxy_port}")
             self.btn_status.setText("connected")
             self.set_btn_status_style("connected")
@@ -402,16 +403,19 @@ class ProxyWindow(QWidget):
                 self.proxy.start(); self.tor.start()
                 self.btn_status.setText("connecting . . .")
                 self.set_btn_status_style("connecting")
+                self.running=True
 
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Start failed: {e}")
                 self.proxy.stop(); self.tor.stop()
                 self.running = False 
+                self.connected = False
                 return
         else:
             self.lbl_percent.setText("0%")
             self.proxy.stop(); self.tor.stop(); set_proxy(False)
             self.running = False
+            self.connected = False
             self.btn_status.setText("disconnected")
             self.set_btn_status_style("disconnected")
             
