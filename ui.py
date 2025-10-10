@@ -801,30 +801,45 @@ class Window(QMainWindow):
     def _createMenuBar(self):
         menuBar = QMenuBar(self)
         self.main_layout.addWidget(menuBar)
-        
-        moreMenu = QMenu("More⬇️", self)
-        menuBar.addMenu(moreMenu)
-        
-        
-        home_action = QAction("Home", self)
-        home_action.triggered.connect(self._show_home)
+
+        # --- Home ---
+        home_action = QAction("    Home🏠    ", self)
         home_action.setShortcut("Ctrl+H")
-        moreMenu.addAction(home_action)
-        
-        setting_action = QAction("&Setting", self)
+        home_action.setToolTip("Ctrl+H")
+        home_action.triggered.connect(self._show_home)
+        menuBar.addAction(home_action)
+
+        # --- Setting ---
+        setting_action = QAction("    Setting⚙️    ", self)
         setting_action.setShortcut("Ctrl+S")
+        setting_action.setToolTip("Ctrl+S")
         setting_action.triggered.connect(self._show_setting)
-        moreMenu.addAction(setting_action)
-        
-        block_action = QAction("Block Host", self)
-        block_action.triggered.connect(self._show_block_host)
+        menuBar.addAction(setting_action)
+
+        # --- Block Host ---
+        block_action = QAction("    Block Host🚫    ", self)
         block_action.setShortcut("Ctrl+B")
-        moreMenu.addAction(block_action)
-        
-        exit_action = QAction("Quit", self)
-        exit_action.setShortcut("Ctrl+Q")        
-        exit_action.triggered.connect(self.close)
-        moreMenu.addAction(exit_action)
+        block_action.setToolTip("Ctrl+B")
+        block_action.triggered.connect(self._show_block_host)
+        menuBar.addAction(block_action)
+
+        # --- Quit ---
+        exit_action = QAction("    Quit🚪    ", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.setToolTip("Ctrl+Q")
+        exit_action.triggered.connect(self.ask_close)
+        menuBar.addAction(exit_action)
+
+    def ask_close(self):
+        reply = QMessageBox.question(
+            self,
+            "Confirm Exit",
+            "Are you sure you want to quit?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.close()
         
     def _show_home(self):
         self.stack.setCurrentIndex(0)
