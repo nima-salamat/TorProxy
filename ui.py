@@ -372,6 +372,8 @@ class ProxyWindow(QWidget):
         
     def dataValueChanged(self, v):
         if v == "100%":
+            if self._parent.isHidden():
+                self._parent._notify("T⭕®️🌐🅿️®️⭕❌Y","🌐Connected 💯%")
             self.connected = True
             set_proxy(True, f"127.0.0.1:{self.proxy_port}")
             self.btn_status.setText("connected")
@@ -856,5 +858,6 @@ class Window(QMainWindow):
     
     def _show_block_host(self):
         self.stack.setCurrentIndex(2)
-        
-        
+         
+    def _notify(self, title, message):
+        self.tray_icon.showMessage(title, message, QSystemTrayIcon.Information, 2000)
