@@ -767,19 +767,17 @@ class Window(QMainWindow):
 
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.activated.connect(self.show_window)
+        self.tray_icon.show()
         
     def show_tray(self):
-        self.tray_icon.show()
         self.hide()
     
     def show_window(self, reason):
         if reason == QSystemTrayIcon.Trigger:
             self.show()
-            self.tray_icon.hide() 
     
     def close(self):
         self.show()
-        self.tray_icon.hide() 
         super().close()
         
     
