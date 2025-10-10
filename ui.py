@@ -325,7 +325,7 @@ class ProxyWindow(QWidget):
         self.main_layout = QVBoxLayout(self)
         self.setLayout(self.main_layout)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.btn_status = QLabel("tap to connect")
+        self.btn_status = QLabel("Tap to connect 🔌")
         self.set_btn_status_style("disconnected")
         self.main_layout.addWidget(self.btn_status)
         self.connect_btn = PulseButton("Connect")
@@ -334,11 +334,11 @@ class ProxyWindow(QWidget):
         self.lbl_percent = QLabel("0%") 
         self.main_layout.addWidget(self.lbl_percent)
         self.data.valueChanged.connect(self.dataValueChanged)
-        self.btn_change_identity = QPushButton("change identity")
+        self.btn_change_identity = QPushButton("Change Identity 🔄")
         self.main_layout.addWidget(self.btn_change_identity)
         self.btn_change_identity.clicked.connect(self.change_identity_)
         self.logs_widget = LogWindow(self)
-        self.btn_log = QPushButton("logs")
+        self.btn_log = QPushButton("Logs 📄")
         self.btn_log.clicked.connect(self.show_logs)
         self.main_layout.addWidget(self.btn_log)
         self.timer = QTimer()
@@ -551,16 +551,16 @@ class SettingWindow(QWidget):
         
         btn_group_mode = QButtonGroup(self) 
         
-        btn_dark = QRadioButton("dark", self)
-        btn_dark.setChecked(CONFIG["mode"]!="light")
-        mode_layout.addWidget(btn_dark)
-        btn_group_mode.addButton(btn_dark)
+        self.btn_dark = QRadioButton("dark", self)
+        self.btn_dark.setChecked(CONFIG["mode"]!="light")
+        mode_layout.addWidget(self.btn_dark)
+        btn_group_mode.addButton(self.btn_dark)
         
-        btn_light = QRadioButton("light", self)
-        btn_light.setChecked(CONFIG["mode"]=="light")
+        self.btn_light = QRadioButton("light", self)
+        self.btn_light.setChecked(CONFIG["mode"]=="light")
         
-        mode_layout.addWidget(btn_light)
-        btn_group_mode.addButton(btn_light)
+        mode_layout.addWidget(self.btn_light)
+        btn_group_mode.addButton(self.btn_light)
         
         btn_bridge = QCheckBox("bridge", self)
         btn_bridge.setChecked(CONFIG.bridge)
@@ -663,10 +663,12 @@ class SettingWindow(QWidget):
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette()))
             
             CONFIG.mode = "light"
+            self._parent.toggle_btn.setText("🌞")
             
         else:
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
             CONFIG.mode= "dark"
+            self._parent.toggle_btn.setText("🌛")
             
 
 class BlcokHostsWindow(QWidget):
@@ -848,7 +850,33 @@ class Window(QMainWindow):
         exit_action.setToolTip("Ctrl+Q")
         exit_action.triggered.connect(self.ask_close)
         menuBar.addAction(exit_action)
+        
+        self.toggle_btn = QPushButton("🌞" if CONFIG["mode"] == "light" else "🌛", self)
+        self.toggle_btn.setToolTip("Toggle Light/Dark Mode")
+        self.toggle_btn.setCheckable(True)
+        self.toggle_btn.clicked.connect(self._toggle_theme)
+        menuBar.setCornerWidget(self.toggle_btn, Qt.TopRightCorner)
+    
+    def _toggle_theme(self):
+        app = QApplication.instance()
+        if self.toggle_btn.text() == "🌞":
+            self.toggle_btn.setText("🌛")
+            self.settingWidget.btn_dark.setChecked(True)
+            app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
+            
+            CONFIG.mode= "dark"
+                
+        else:
+            self.toggle_btn.setText("🌞")
+            self.settingWidget.btn_light.setChecked(True)
+            app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette())) 
+            CONFIG.mode = "light"
+            
 
+        
+            
+        
+     
     def ask_close(self):
         reply = QMessageBox.question(
             self,
@@ -866,7 +894,7 @@ class Window(QMainWindow):
             "Keyboard Shortcuts",
             (
                 "<b>Keyboard Shortcuts:</b><br><br>"
-                "Alt + Ctrol + P → Hide/Show Hotkey"
+                "Alt + Ctrol + P → Hide/Show Hotkey<br>"
                 "Ctrl + H → Home<br>"
                 "Ctrl + S → Setting<br>"
                 "Ctrl + B → Block Host<br>"
