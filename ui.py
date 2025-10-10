@@ -346,10 +346,13 @@ class ProxyWindow(QWidget):
         self.timer.start()
     
     def show_logs(self):
-        self.logs_widget.setParent(self)
-        self.logs_widget.move(10,10)
-        self.logs_widget.show()
-        
+        if self.logs_widget.isHidden():
+            self.logs_widget.setParent(self)
+            self.logs_widget.move(10,10)
+            self.logs_widget.show() 
+        else:
+            self.logs_widget.hide() 
+            
        
     def change_identity_(self):
         worker = Worker(
