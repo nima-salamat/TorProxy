@@ -776,7 +776,10 @@ class Window(QMainWindow):
     
     def show_window(self, reason):
         if reason == QSystemTrayIcon.Trigger:
-            self.show()
+            if self.isHidden():
+                self.show()
+            else:
+                self.hide()
     
     def close(self):
         self.show()
