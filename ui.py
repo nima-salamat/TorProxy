@@ -823,6 +823,13 @@ class Window(QMainWindow):
         block_action.triggered.connect(self._show_block_host)
         menuBar.addAction(block_action)
 
+        # --- Help ---
+        help_action = QAction("    Help❕    ", self)
+        help_action.setShortcut("F1")
+        help_action.setToolTip("Show shortcuts")
+        help_action.triggered.connect(self._show_help)
+        menuBar.addAction(help_action)
+        
         # --- Quit ---
         exit_action = QAction("    Quit🚪    ", self)
         exit_action.setShortcut("Ctrl+Q")
@@ -840,7 +847,20 @@ class Window(QMainWindow):
         )
         if reply == QMessageBox.Yes:
             self.close()
-        
+    
+    def _show_help(self):
+        QMessageBox.information(
+            self,
+            "Keyboard Shortcuts",
+            (
+                "<b>Keyboard Shortcuts:</b><br><br>"
+                "Ctrl + H → Home<br>"
+                "Ctrl + S → Setting<br>"
+                "Ctrl + B → Block Host<br>"
+                "Ctrl + Q → Quit"
+            )
+        )
+    
     def _show_home(self):
         self.stack.setCurrentIndex(0)
 
