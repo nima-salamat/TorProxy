@@ -37,7 +37,8 @@ import json
 import cv2
 from pyzbar.pyzbar import decode
 import numpy
-
+import keyboard
+import threading
 
 class Config:
     file_config = "config.json"
@@ -731,6 +732,7 @@ class BlcokHostsWindow(QWidget):
             
 
 class Window(QMainWindow):
+    toggle_visibility_signal = Signal()
     def __init__(self):
         super().__init__()
         self.setWindowFlag(Qt.FramelessWindowHint)
@@ -771,6 +773,22 @@ class Window(QMainWindow):
         self.tray_icon.activated.connect(self.show_window)
         self.tray_icon.show()
         
+        
+        self.keyboard_listener_running = True
+        self.listener_thread = threading.Thread(target=self._start_key_listener, daemon=True)
+        self.listener_thread.start()
+        
+        self.toggle_visibility_signal.connect(self._toggle_visibility)
+
+    def _toggle_visibility(self):
+        self.setHidden(not self.isHidden())
+
+    def _start_key_listener(self):
+        keyboard.add_hotkey('ctrl+alt+p', lambda: self.toggle_visibility_signal.emit())
+        
+
+        keyboard.wait()
+        
     def show_tray(self):
         self.hide()
     
@@ -787,6 +805,8 @@ class Window(QMainWindow):
         
     
     def closeEvent(self, event):
+        self.running = False
+        keyboard.unhook_all_hotkeys()
         if self.proxyWidget.running: self.proxyWidget.proxy.stop(); self.proxyWidget.tor.stop(); set_proxy(False)
         event.accept()
 
