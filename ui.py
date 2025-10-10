@@ -694,7 +694,7 @@ class Window(QMainWindow):
         
         tray_menu = QMenu()
         quit_action = QAction("Quit", self)
-        quit_action.triggered.connect(QApplication.quit)
+        quit_action.triggered.connect(self.close)
         tray_menu.addAction(quit_action)
 
         self.tray_icon.setContextMenu(tray_menu)
@@ -709,6 +709,12 @@ class Window(QMainWindow):
         if reason == QSystemTrayIcon.Trigger:
             self.show()
             self.tray_icon.hide() 
+    
+    def close(self):
+        self.show()
+        self.tray_icon.hide() 
+        super().close()
+        
     
     def closeEvent(self, event):
         if self.proxyWidget.running: self.proxyWidget.proxy.stop(); self.proxyWidget.tor.stop(); set_proxy(False)
