@@ -39,6 +39,7 @@ from pyzbar.pyzbar import decode
 import numpy
 import keyboard
 import threading
+import time
 
 class Config:
     file_config = "config.json"
@@ -364,7 +365,6 @@ class ProxyWindow(QWidget):
     def change_identity(self):
         if self.connected:
             try:
-                print(self.tor_control_port, type(self.tor_control_port))
                 with Controller.from_port(address="127.0.0.1", port=self.tor_control_port) as controller:
                     controller.authenticate()
                     controller.signal(TorSignal.NEWNYM)
@@ -658,7 +658,6 @@ class SettingWindow(QWidget):
             
     def change_mode(self, radiobtn):
         app = QApplication.instance()
-        print("hey")
         if radiobtn.text() == "light":
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette()))
             
@@ -722,7 +721,6 @@ class BlcokHostsWindow(QWidget):
         
     def add_to_list(self):
         host = self.inp_host.text()
-        print(host)
         if add_to_blocked_hosts(host):
             worker = Worker(
                 save_blocked
@@ -775,8 +773,7 @@ class Window(QMainWindow):
         self.tray_icon.activated.connect(self.show_window)
         self.tray_icon.show()
         
-        
-        self.keyboard_listener_running = True
+        self.listener_running = True
         self.listener_thread = threading.Thread(target=self._start_key_listener, daemon=True)
         self.listener_thread.start()
         
@@ -787,9 +784,10 @@ class Window(QMainWindow):
 
     def _start_key_listener(self):
         keyboard.add_hotkey('ctrl+alt+p', lambda: self.toggle_visibility_signal.emit())
+        while self.listener_running:
+            time.sleep(0.5)
+        keyboard.unhook_all_hotkeys()
         
-
-        keyboard.wait()
         
     def show_tray(self):
         self.hide()
@@ -802,13 +800,14 @@ class Window(QMainWindow):
                 self.hide()
     
     def close(self):
+        self.listener_running = False
+        self.listener_thread.join()
         self.show()
         super().close()
         
-    
     def closeEvent(self, event):
-        self.running = False
-        keyboard.unhook_all_hotkeys()
+        self.listener_running = False
+        self.listener_thread.join()
         if self.proxyWidget.running: self.proxyWidget.proxy.stop(); self.proxyWidget.tor.stop(); set_proxy(False)
         event.accept()
 
@@ -871,11 +870,6 @@ class Window(QMainWindow):
             self.settingWidget.btn_light.setChecked(True)
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette())) 
             CONFIG.mode = "light"
-            
-
-        
-            
-        
      
     def ask_close(self):
         reply = QMessageBox.question(
@@ -894,7 +888,7 @@ class Window(QMainWindow):
             "Keyboard Shortcuts",
             (
                 "<b>Keyboard Shortcuts:</b><br><br>"
-                "Alt + Ctrol + P → Hide/Show Hotkey<br>"
+                "Alt + Ctrl + P → Hide/Show Hotkey<br>"
                 "Ctrl + H → Home<br>"
                 "Ctrl + S → Setting<br>"
                 "Ctrl + B → Block Host<br>"
