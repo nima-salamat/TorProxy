@@ -6,11 +6,12 @@ import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
 import sys
-from ui import Window, CONFIG
+from ui import Window, CONFIG, resource_path
+
 if __name__ == "__main__":
     
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon("icon.ico"))
+    app.setWindowIcon(QIcon(resource_path("assets/icon.ico")))
     CONFIG.load()
     if CONFIG.mode == "light":
         app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette()))

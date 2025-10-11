@@ -31,7 +31,7 @@ from stem import Signal as TorSignal
 from stem.control import Controller
 from proxy import get_free_port, load_blocked, set_proxy, remove_blocked, save_blocked, add_to_blocked_hosts, get_blocked
 
-from tor import TorRunner, Runner
+from tor import TorRunner, Runner, resource_path
 import os
 import json
 import cv2
@@ -41,6 +41,7 @@ import keyboard
 import threading
 import time
 
+    
 class Config:
     file_config = "config.json"
     default_data = {"bridges": "", "bridge":False, "mode": "dark"}
@@ -70,9 +71,7 @@ class Config:
     def create_if_is_not_exits(fun):
         def inner_function(*args, **kwargs):
             
-            dir_ = os.path.dirname(__file__)
-            file_path = os.path.join(dir_, Config.file_config)
-            
+            file_path = resource_path(Config.file_config)
             if not os.path.exists(file_path):
                 open(file_path, "w").close()
                 
@@ -81,12 +80,12 @@ class Config:
         return inner_function    
     
     def save_config(self, data):
-        with open(self.file_config, "w") as file:
+        with open(resource_path(Config.file_config), "w") as file:
             file.write(data)
 
     @create_if_is_not_exits
     def get_config(self):
-        with open(self.file_config, "r") as file:
+        with open(resource_path(Config.file_config), "r") as file:
             return file.read()
     
     def json_format(self, data):
