@@ -4,3 +4,4 @@ tor_log.txt
 config.json
 blocked_hosts.json
 temp_torrc.txt
+pid
