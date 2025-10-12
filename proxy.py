@@ -2,8 +2,6 @@ import os
 import json
 import socks
 import select
-import winreg
-import ctypes
 import socket
 from urllib.parse import urlsplit
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -47,19 +45,7 @@ def save_blocked():
     with open(BLOCKED_FILE, 'w') as f:
         json.dump(blocked_hosts, f, indent=2)
 
-def set_proxy(enable=True, server="127.0.0.1:8080"):
-    path = r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
-    try:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_WRITE)
-        winreg.SetValueEx(key, "ProxyEnable", 0, winreg.REG_DWORD, 1 if enable else 0)
-        winreg.SetValueEx(key, "ProxyServer", 0, winreg.REG_SZ, server if enable else "")
-        winreg.CloseKey(key)
-        ctypes.windll.Wininet.InternetSetOptionW(0, 37, 0, 0)
-        ctypes.windll.Wininet.InternetSetOptionW(0, 39, 0, 0)
-        return True
-    except Exception as e:
-        print(f"[!] set_proxy error: {e}")
-        return False
+    
 
 # ====== Proxy Handler ======
 class ProxyHandler(BaseHTTPRequestHandler):
@@ -134,6 +120,3 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     def __init__(self, addr, handler, tor_socks_port):
         super().__init__(addr, handler)
         self.tor_socks_port = tor_socks_port
-
-# ====== Logging ======
-# def log_request(cmd, path, size=0, app_window=None): app_window.append_log(f"[{cmd}] {path} ({size} bytes)\n")

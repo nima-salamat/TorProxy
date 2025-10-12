@@ -29,8 +29,8 @@ from PySide6.QtGui import QPainter, QColor, QBrush, QAction
 import sys
 from stem import Signal as TorSignal
 from stem.control import Controller
-from proxy import get_free_port, load_blocked, set_proxy, remove_blocked, save_blocked, add_to_blocked_hosts, get_blocked
-
+from proxy import get_free_port, load_blocked, remove_blocked, save_blocked, add_to_blocked_hosts, get_blocked
+from set_proxy import manage_proxy
 from tor import TorRunner, Runner, resource_path
 import os
 import json
@@ -375,7 +375,7 @@ class ProxyWindow(QWidget):
             if self._parent.isHidden():
                 self._parent._notify("T⭕®️🌐🅿️®️⭕❌Y","🌐Connected 💯%")
             self.connected = True
-            set_proxy(True, f"127.0.0.1:{self.proxy_port}")
+            manage_proxy("127.0.0.1", self.proxy_port, "set")
             self.btn_status.setText("connected")
             self.set_btn_status_style("connected")
             
@@ -418,7 +418,8 @@ class ProxyWindow(QWidget):
                 return
         else:
             self.lbl_percent.setText("0%")
-            self.proxy.stop(); self.tor.stop(); set_proxy(False)
+            self.proxy.stop(); self.tor.stop(); manage_proxy("127.0.0.1", 0, "clear")
+
             self.running = False
             self.connected = False
             self.btn_status.setText("disconnected")
@@ -807,7 +808,7 @@ class Window(QMainWindow):
     def closeEvent(self, event):
         self.listener_running = False
         self.listener_thread.join()
-        if self.proxyWidget.running: self.proxyWidget.proxy.stop(); self.proxyWidget.tor.stop(); set_proxy(False)
+        if self.proxyWidget.running: self.proxyWidget.proxy.stop(); self.proxyWidget.tor.stop(); manage_proxy("127.0.0.1", 0, "clear")
         event.accept()
 
     def _createMenuBar(self):
