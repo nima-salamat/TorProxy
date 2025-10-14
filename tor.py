@@ -4,6 +4,10 @@ import sys
 import platform
 import os
 from proxy import  ProxyHandler, ThreadedHTTPServer
+
+import logging
+logger = logging.getLogger(__name__)
+
 def resource_path(relative_path):
     if getattr(sys, "_MEIPASS", False):
         base = sys._MEIPASS
@@ -16,6 +20,12 @@ lyrebird_path = resource_path("tor_bundle/tor/pluggable_transports/lyrebird.exe"
 geoip_path = resource_path("tor_bundle/data/geoip")
 geoip6_path = resource_path("tor_bundle/data/geoip6")
 
+logger.debug(f"File \n\tpath[tor path:{tor_path}\n"
+             f"\tlyrebird_path{lyrebird_path}\n"
+             f"\tgeoip_path{geoip_path}\n"
+             f"\tgeoip6_path{geoip6_path}\n"
+             "\n]")
+
 
 class TorRunner:
     def __init__(self, socks_port, contorl_port, dns_port):
@@ -26,13 +36,13 @@ class TorRunner:
         self.contorl_port = contorl_port
         self.dns_port = dns_port
         self.MaxCircuitDirtiness = 300
-
         self.bridge_types = ["obfs4", "webtunnel", "meek", "snowflake", "scramblesuit", "fte"]
         
     def start(self):
         if self.proc: return
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
+        logger.debug("Thread tor runner started")
     def _run(self):
         
         torrc_content = f"SocksPort {self.socks_port}\nLog notice stdout\nControlPort {self.contorl_port}\n"
@@ -53,7 +63,8 @@ class TorRunner:
                 torrc_content += 'UseBridges 1\n'
                 torrc_content += 'ClientTransportPlugin %s exec '%(bridge_type)+ lyrebird_path +'\n'
                 torrc_content += self.bridges.replace(bridge_type, "Bridge %s"%(bridge_type))
-                
+        
+        logger.debug(f"torcc text:{torrc_content}")     
         with open("temp_torrc.txt", "w") as f: f.write(torrc_content)
         
         
@@ -69,6 +80,7 @@ class TorRunner:
                 f.write(line.decode()); f.flush()
                 if "Bootstrapped" in line.decode():
                     lst =  line.decode().split(" ")
+                    logger.debug(f"[{line.decode()}]")
                     self.app_window.data.value = lst[lst.index("Bootstrapped") + 1]
                     self.app_window.logs_widget.update_log(line.decode())
 
@@ -88,7 +100,9 @@ class Runner:
         self.server = ThreadedHTTPServer(("0.0.0.0", self.port), ProxyHandler, self.tor_socks_port)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
+        logger.debug("Thread proxy server started")
     def stop(self):
         if not self.server: return
         self.server.shutdown(); self.server.server_close(); self.thread.join()
+        logger.debug("Proxy server closed")
         self.server=None; self.thread=None

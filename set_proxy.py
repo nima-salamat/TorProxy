@@ -6,18 +6,21 @@ handle windows linux system first diagnose and set
 import os
 import platform
 
-print(platform.system())
 
+import logging
+logger = logging.getLogger(__name__)
+
+logger.debug(platform.system())
 
 try:
     import winreg
 except Exception as e:
-    print(f"[!] winreg not found: {e}")
+    logger.error(f"[!] winreg not found: {e}")
     winreg = None
 try:
     import ctypes
 except Exception as e:
-    print(f"[!] ctypes not found: {e}")
+    logger.error(f"[!] ctypes not found: {e}")
     ctypes = None
 
 class Os:
@@ -31,7 +34,7 @@ class Handler:
         self.port = port
         
     def set_windows_proxy(self):
-        print(f"Setting Windows proxy to {self.host}:{self.port}")
+        logger.debug(f"Setting Windows proxy to {self.host}:{self.port}")
         path = r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_WRITE)
@@ -40,14 +43,15 @@ class Handler:
             winreg.CloseKey(key)
             ctypes.windll.Wininet.InternetSetOptionW(0, 37, 0, 0)
             ctypes.windll.Wininet.InternetSetOptionW(0, 39, 0, 0)
+            logger.debug(f"Set Windows proxy to {self.host}:{self.port}")
             return True
         except Exception as e:
-            print(f"[!] set_proxy error: {e}")
+            logger.error(f"[!] set_proxy error: {e}")
             return False
         
     
     def clear_windows_proxy(self):
-        print(f"Clearing Windows proxy")
+        logger.debug(f"Clearing Windows proxy")
         path = r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_WRITE)
@@ -56,9 +60,10 @@ class Handler:
             winreg.CloseKey(key)
             ctypes.windll.Wininet.InternetSetOptionW(0, 37, 0, 0)
             ctypes.windll.Wininet.InternetSetOptionW(0, 39, 0, 0)
+            logger.info(f"Cleared Windows proxy")
             return True
         except Exception as e:
-            print(f"[!] set_proxy error: {e}")
+            logger.error(f"[!] set_proxy error: {e}")
             return False
         
     
@@ -75,7 +80,7 @@ def manage_proxy(host, port, action="set"):
             handler.clear_windows_proxy()
     # linux system not implemented yet
     else:
-        print("Operating system not supported")
+        logger.error("Operating system not supported")
         return False
     return True
 

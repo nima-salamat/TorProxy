@@ -7,10 +7,13 @@ from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
 import sys
 from ui import Window, CONFIG, resource_path
-
 import psutil
-
 import os
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 if __name__ == "__main__":
     
     app = QApplication(sys.argv)
@@ -37,12 +40,12 @@ if __name__ == "__main__":
                         process_past.terminate()
                              
                     else:
-                        print("exit . . . ")
+                        logger.error("exiting  . . .  ")
                         app.quit()
                         sys.exit()
 
             except Exception as e: 
-                print(e)
+                logger.error(f"Error {e}")
             
             try:
                 if len(lst) > 1:
@@ -50,7 +53,7 @@ if __name__ == "__main__":
                         pid_tor = int(lst[1])
                         process_tor = psutil.Process(pid_tor)
                         if process_tor.is_running():
-                            print("tor is runnning")
+                            logger.error("tor is runnning")
                             process_tor.terminate()  
             except:
                 pass
@@ -58,7 +61,7 @@ if __name__ == "__main__":
     with open(resource_path(pid_file), "w") as f:
         f.write(str(pid))
 
-    print(os.getpid())
+    logger.info(f" App PID={os.getpid()}")
     
    
     app.setWindowIcon(QIcon(resource_path("assets/icon.ico")))

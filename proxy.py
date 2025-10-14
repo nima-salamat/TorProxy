@@ -6,7 +6,9 @@ import socket
 from urllib.parse import urlsplit
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
+import logging
 
+logger = logging.getLogger(__name__)
 # ====== Config & Globals ======
 BLOCKED_FILE = 'blocked_hosts.json'
 blocked_hosts = []
@@ -24,7 +26,7 @@ def load_blocked():
             with open(BLOCKED_FILE, 'r') as f:              
                 blocked_hosts = json.load(f)
         except:
-            print('error in loading blocked hosts')
+            logger.error('error in loading blocked hosts')
             blocked_hosts = []
     else:
         blocked_hosts = []
@@ -45,7 +47,6 @@ def save_blocked():
     with open(BLOCKED_FILE, 'w') as f:
         json.dump(blocked_hosts, f, indent=2)
 
-    
 
 # ====== Proxy Handler ======
 class ProxyHandler(BaseHTTPRequestHandler):
@@ -53,16 +54,17 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_CONNECT(self):
         host, port = self.path.split(":")
         port = int(port)
-        print(host)
                 
         for i in blocked_hosts:
             if i.startswith("*"):
                 if host.endswith(i[1:]):
                     self.send_error(403, "Forbidden: Blocked")
+                    logger.debug(f"BLOCKED {host}:{port}")
                     return
     
         if host in blocked_hosts or any([host.endswith("."+i) for i in blocked_hosts]):
             self.send_error(403, "Forbidden: Blocked")
+            logger.debug(f"BLOCKED {host}:{port}")
             return
         try:
             remote = socks.socksocket()
@@ -74,6 +76,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             # log_request(self.command, self.path, app_window=self.app_window)
         except Exception as e:
             self.send_error(502, f"CONNECT error: {e}")
+            logger.error(f"CONNECT error: {e}")
 
     def do_GET(self): self._handle_http()
     def do_POST(self): self._handle_http()
@@ -96,9 +99,11 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 body = self.rfile.read(int(self.headers['Content-Length']))
             remote.sendall(full.encode() + body)
             self._tunnel(remote, self.connection)
-            # log_request(self.command, self.path, len(full.encode() + body), self.app_window)
+            logger.debug(f"Sent {len(full.encode() + body)} bytes to {host}:{port}")
+
         except Exception as e:
             self.send_error(502, f"HTTP error: {e}")
+            logger.error(f"HTTP error: {e}")
 
     def _tunnel(self, src, dst):
         socks_list = [src, dst]

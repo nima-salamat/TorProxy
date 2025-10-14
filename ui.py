@@ -41,6 +41,11 @@ import keyboard
 import threading
 import time
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
     
 class Config:
     file_config = "config.json"
@@ -316,7 +321,7 @@ class ProxyWindow(QWidget):
         self.proxy_port = get_free_port()
         self.tor_control_port = get_free_port()
         self.tor_dns_port = get_free_port()
-        print(f'port(proxy): {self.proxy_port} - port(socks): {self.tor_socks_port} - port(control): {self.tor_control_port}, - port(dns): {self.tor_dns_port}')
+        logger.info(f'port(proxy): {self.proxy_port} - port(socks): {self.tor_socks_port} - port(control): {self.tor_control_port}, - port(dns): {self.tor_dns_port}')
         self.tor = TorRunner(self.tor_socks_port, self.tor_control_port, self.tor_dns_port)
         self.tor.bridge = CONFIG["bridge"]
         self.tor.bridges = CONFIG["bridges"]
@@ -509,7 +514,7 @@ class QrCodeFloatingWindow(QWidget):
                 data = obj.data.decode('utf-8')
                 self.process_qr_code(data, frame, obj)
             except Exception as e:
-                print(f"Error decoding QR: {e}")
+                logger.error(f"Error decoding QR: {e}")
                 
         h, w, ch = rgb_frame.shape
         bytes_per_line = ch * w
@@ -630,7 +635,7 @@ class SettingWindow(QWidget):
                 self._parent.proxyWidget.timer.setInterval(int(text))
                 self.newnym_lbl_stat.setText(f"({self._parent.proxyWidget.timer.interval()//1000} sec)  ✅")
             except OverflowError:
-                print(text)
+                logger.error(text)
         else:
             self.newnym_lbl_stat.setText("❌")
 
