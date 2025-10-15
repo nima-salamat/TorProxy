@@ -27,6 +27,7 @@ from qdarkstyle.light.palette import LightPalette
 from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property, Signal, QObject, QTimer, QRunnable, Slot, QThreadPool
 from PySide6.QtGui import QPainter, QColor, QBrush, QAction
 import sys
+from qtpy.QtCore import QThread
 from stem import Signal as TorSignal
 from stem.control import Controller
 from proxy import get_free_port, load_blocked, remove_blocked, save_blocked, add_to_blocked_hosts, get_blocked
@@ -40,6 +41,7 @@ import numpy
 import keyboard
 import threading
 import time
+from whatismyip import what_is_my_ip, check_connectivity
 
 import logging
 
@@ -220,7 +222,7 @@ class Data(QObject):
 
 class QRWorkerSignals(QObject):
     started = Signal()
-    finished = Signal()
+    finished = Signal(str)
     error = Signal(str)
 
 
@@ -240,8 +242,9 @@ class Worker(QRunnable):
         
         try:
             self.signals.started.emit()
-            self.fn(*self.args, **self.kwargs)      
-            self.signals.finished.emit()
+            result = self.fn(*self.args, **self.kwargs)      
+            result = "" if result == None else result
+            self.signals.finished.emit(str(result))
         except Exception as e:
             self.signals.error.emit(str(e))
 
@@ -350,7 +353,26 @@ class ProxyWindow(QWidget):
         self.timer.setInterval(30000)
         self.timer.timeout.connect(self.change_identity_)
         self.timer.start()
+        
+        layout_ip = QVBoxLayout()
+        layout_top_ip = QHBoxLayout()
+        layout_ip.addLayout(layout_top_ip)
+        self.tor_ip_label = QLabel()
+        layout_top_ip.addWidget(self.tor_ip_label)
+
+        self.btn_whatismyip = QPushButton("what.is.my.ip🌐")
+        layout_ip.addWidget(self.btn_whatismyip)
+        self.btn_whatismyip.clicked.connect(self.whatismyip_clicked)
+        self.main_layout.addLayout(layout_ip)
+        self.thread_pool = QThreadPool()
     
+    def whatismyip_clicked(self):
+        self.worker = Worker(lambda: what_is_my_ip()) 
+        self.worker.signals.finished.connect(lambda x: self.tor_ip_label.setText("ip: " + x) or self.btn_whatismyip.setEnabled(True))
+        self.worker.signals.error.connect(lambda e: self.tor_ip_label.setText("ip: error") or self.btn_whatismyip.setEnabled(True))
+        self.thread_pool.start(self.worker)
+        self.btn_whatismyip.setDisabled(True)
+        
     def show_logs(self):
         if self.logs_widget.isHidden():
             self.logs_widget.setParent(self)
@@ -613,7 +635,7 @@ class SettingWindow(QWidget):
     def show_qrcode(self):
      
         worker = Worker(self.qrcode_widget.run)
-        worker.signals.finished.connect(self.show_qrcode_widget)
+        worker.signals.finished.connect(lambda x: self.show_qrcode_widget())
         worker.signals.error.connect(self.show_qrcode_widget)
 
         self.threadpool.start(worker)
