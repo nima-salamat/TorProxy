@@ -30,6 +30,9 @@ import sys
 from qtpy.QtCore import QThread
 from stem import Signal as TorSignal
 from stem.control import Controller
+from stem import SocketClosed, OperationFailed
+from stem.connection import AuthenticationFailure
+
 from proxy import get_free_port, load_blocked, remove_blocked, save_blocked, add_to_blocked_hosts, get_blocked
 from set_proxy import manage_proxy
 from tor import TorRunner, Runner, resource_path
@@ -389,19 +392,40 @@ class ProxyWindow(QWidget):
         self.threadpool.start(worker)
 
     def change_identity(self):
-        if self.connected:
-            try:
-                with Controller.from_port(address="127.0.0.1", port=self.tor_control_port) as controller:
-                    controller.authenticate()
-                    controller.signal(TorSignal.NEWNYM)
-            except:
-                pass      
+        if not self.connected:
+            logger.warning("change_tor_identity called but not connected to Tor.")
+            return False
+
+        try:
+            
+                self.controller.authenticate()
+                self.controller.signal(TorSignal.NEWNYM)
+                logger.info("Tor identity changed successfully (NEWNYM sent).")
+                return True
+
+        except SocketClosed:
+            logger.error("Tor control socket is closed. Marking connection as disconnected.")
+            self.connected = False
+            return False
+
+        except AuthenticationFailure:
+            logger.critical("Authentication to Tor control port failed. Check password or cookie.")
+            return False
+
+        except OperationFailed:
+            logger.warning("Tor NEWNYM signal was rejected. Possibly due to rate limit.")
+            return False
+
+        except Exception as e:
+            logger.exception(f"Unexpected error while sending NEWNYM: {e}")
+            return False
         
     def dataValueChanged(self, v):
         if v == "100%":
             if self._parent.isHidden():
                 self._parent._notify("T⭕®️🌐🅿️®️⭕❌Y","🌐Connected 💯%")
             self.connected = True
+            self.controller =  Controller.from_port(address="127.0.0.1", port=self.tor_control_port)
             manage_proxy("127.0.0.1", self.proxy_port, "set")
             self.btn_status.setText("connected")
             self.set_btn_status_style("connected")
@@ -789,7 +813,7 @@ class Window(QMainWindow):
         self.main_layout.addWidget(self.stack)
         
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon("assets/icon.png"))
+        self.tray_icon.setIcon(QIcon(resource_path("assets/icon.png")))
         
         tray_menu = QMenu()
         quit_action = QAction("Quit", self)
@@ -818,6 +842,9 @@ class Window(QMainWindow):
         
     def show_tray(self):
         self.hide()
+        # # shold use show becuase tray will delete after system locked in this case windows
+        # self.tray_icon.show()
+        
     
     def show_window(self, reason):
         if reason == QSystemTrayIcon.Trigger:
@@ -825,6 +852,8 @@ class Window(QMainWindow):
                 self.show()
             else:
                 self.hide()
+        # self.tray_icon.show()
+        
     
     def close(self):
         self.listener_running = False
