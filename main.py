@@ -47,16 +47,17 @@ if __name__ == "__main__":
             except Exception as e: 
                 logger.error(f"Error {e}")
             
-            try:
                 if len(lst) > 1:
-
-                        pid_tor = int(lst[1])
-                        process_tor = psutil.Process(pid_tor)
-                        if process_tor.is_running():
-                            logger.error("tor is runnning")
-                            process_tor.terminate()  
-            except:
-                pass
+                        lst.pop(0)
+                        for pid_tor in lst:
+                            try: 
+                                process_tor = psutil.Process(int(pid_tor))
+                                if process_tor.is_running():
+                                    logger.info(f"PID:{pid_tor} running")
+                                    logger.error("tor is runnning")
+                                    process_tor.terminate()  
+                            except Exception as e:
+                                 logger.error(e)
             
     with open(resource_path(pid_file), "w") as f:
         f.write(str(pid))
