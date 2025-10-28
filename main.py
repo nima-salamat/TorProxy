@@ -6,7 +6,7 @@ import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
 import sys
-from ui_ import Window, resource_path
+from ui import Window, resource_path
 from config import CONFIG
 import psutil
 import os
