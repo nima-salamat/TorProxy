@@ -14,57 +14,70 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-if __name__ == "__main__":
+PID_FILE = "pid"
+
+def check_old_processes():
     
-    app = QApplication(sys.argv)
-    pid_file = "pid"
     pid = os.getpid()
     process = psutil.Process(pid)
     name = process.name()
-    if os.path.exists(resource_path(pid_file)):
-        with open(resource_path(pid_file), "r") as f:
+    
+    if os.path.exists(resource_path(PID_FILE)):
+        with open(resource_path(PID_FILE), "r") as f:
             lst = f.readlines()
             
             try:
-                pid_past = int(lst[0].strip())
-                process_past = psutil.Process(pid_past)
-                if process_past.is_running() and process_past.name() == name:
+                app_pid = int(lst[0].strip())
+                app_process = psutil.Process(app_pid)
+                if app_process.is_running() and app_process.name() == name:
                     reply = QMessageBox.question(
                         None,
                         "Same Program found",
-                        f"Do you want to terminate past process with pid={pid_past}",
+                        f"Do you want to terminate past process with pid={app_pid}",
                         QMessageBox.Yes | QMessageBox.No,
                         QMessageBox.No
                     )
                     if reply == QMessageBox.Yes:
-                        process_past.terminate()
-                             
+                        app_process.terminate()
+                        logger.info("YES:User decieded to end old program.")
+                        
+                        
                     else:
-                        logger.error("exiting  . . .  ")
+                        logger.info("NO:User decieded to end program.")
+                        logger.info("Exiting...")
+                        
                         app.quit()
                         sys.exit()
 
             except Exception as e: 
                 logger.error(f"Error {e}")
             
-                if len(lst) > 1:
-                        lst.pop(0)
-                        for pid_tor in lst:
-                            try: 
-                                process_tor = psutil.Process(int(pid_tor))
-                                if process_tor.is_running():
-                                    logger.info(f"PID:{pid_tor} running")
-                                    logger.error("tor is runnning")
-                                    process_tor.terminate()  
-                            except Exception as e:
-                                 logger.error(e)
-            
-    with open(resource_path(pid_file), "w") as f:
-        f.write(str(pid))
+            if len(lst) > 1:
+                lst.pop(0)
+                for tor_pid in lst:
+                    try: 
+                        tor_process = psutil.Process(int(tor_pid))
+                        logger.info(f"PID:{tor_pid} running")
+                        if tor_process.is_running() and tor_process.name() == "tor.exe":
+                            tor_process.terminate()
+                            logger.info("Old tor process terminated")
+                            
+                    except Exception as e:
+                        logger.error(f"Failed to terminate old tor process with PID:{tor_pid} Error:{e}")
+            else:
+                logger.info(f"There is not any old tor process in pid file: {PID_FILE}")       
 
-    logger.info(f" App PID={os.getpid()}")
-    
    
+def save_current_pid():
+    pid = os.getpid()
+    with open(resource_path(PID_FILE), "w") as f:
+        f.write(str(pid)) 
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    logger.info(f" App PID={os.getpid()}")
+    check_old_processes()
+    save_current_pid()
     app.setWindowIcon(QIcon(resource_path("assets/icon.ico")))
     CONFIG.load()
     if CONFIG.mode == "light":
