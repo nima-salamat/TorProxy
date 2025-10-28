@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 
 from config import CONFIG
-from ui.log_window import LogWindow
+from ui_.log_window import LogWindow
 
 
 
