@@ -35,7 +35,22 @@ class TorRunner:
         self.bridges = ""   
         self.contorl_port = contorl_port
         self.dns_port = dns_port
+       
+        # Node selection
+        self.ExcludeNodes = []
+        self.ExitNodes = [] 
+        self.StrictNodes = 0
+
+        # Circuit behavior
         self.MaxCircuitDirtiness = 300
+        self.NewCircuitPeriod = 30
+
+        # Network behavior
+        self.ClientUseIPv4 = 1
+        self.ClientUseIPv6 = 0
+         
+        self.Log = "notice stdout"        
+                        
         self.bridge_types = ["obfs4", "webtunnel", "meek", "snowflake", "scramblesuit", "fte"]
         
     def start(self):
@@ -43,26 +58,50 @@ class TorRunner:
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
         logger.debug("Thread tor runner started")
-    def _run(self):
         
-        torrc_content = f"SocksPort {self.socks_port}\nLog notice stdout\nControlPort {self.contorl_port}\n"
-        torrc_content += 'GeoIPFile ' + geoip_path + '\n'
-        torrc_content += 'GeoIPv6File ' + geoip6_path + '\n'        
-        torrc_content += 'DNSPort ' + str(self.dns_port) + '\n'
-        torrc_content += 'AutomapHostsOnResolve 1'+ '\n'
-        torrc_content += 'MaxCircuitDirtiness ' + str(self.MaxCircuitDirtiness) + '\n'
-        
+    
+    def generate_torcc(self):
+        config = [
+            f"SocksPort {self.socks_port}",
+            f"ControlPort {self.contorl_port}", 
+            f"DNSPort {self.dns_port}",
+            f"GeoIPFile {geoip_path}",
+            f"GeoIPv6File {geoip6_path}",
+            f"Log {self.Log}",
+            f"MaxCircuitDirtiness {self.MaxCircuitDirtiness}",
+            f"NewCircuitPeriod {self.NewCircuitPeriod}",
+            f"ExcludeNodes {','.join(self.ExcludeNodes)}",
+            f"ExitNodes {','.join(self.ExitNodes)}",
+            f"StrictNodes {self.StrictNodes}",
+            f"ClientUseIPv4 {1 if self.ClientUseIPv4 else 0}",
+            f"ClientUseIPv6  {1 if self.ClientUseIPv6  else 0}",
+        ]
         
         if self.bridge and self.bridges:
+            
             bridge_type = ""
             for i in self.bridge_types:
                 if i in self.bridges:
                     bridge_type = i
                     break
             if bridge_type:
-                torrc_content += 'UseBridges 1\n'
-                torrc_content += 'ClientTransportPlugin %s exec '%(bridge_type)+ lyrebird_path +'\n'
-                torrc_content += self.bridges.replace(bridge_type, "Bridge %s"%(bridge_type))
+                bridges = self.bridges.replace(bridge_type, "Bridge %s"%(bridge_type))
+                print(bridges)
+                config.extend(
+                    [
+                       "UseBridges 1",
+                       'ClientTransportPlugin %s exec '%(bridge_type)+ lyrebird_path,
+                       bridges
+                       
+                        
+                    ]
+                )
+
+        return "\n".join(config)  
+    
+    def _run(self):
+        
+        torrc_content = self.generate_torcc()
         
         logger.debug(f"torcc text:{torrc_content}")     
         with open("temp_torrc.txt", "w") as f: f.write(torrc_content)
