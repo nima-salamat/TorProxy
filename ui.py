@@ -1,50 +1,31 @@
 from PySide6.QtWidgets import (
     QApplication,
-    QLabel,
     QMainWindow,
     QMenuBar,
     QMenu,
     QStackedWidget,
     QWidget,
-    QButtonGroup,
-    QRadioButton,
     QVBoxLayout,
-    QHBoxLayout,
     QPushButton,
     QMessageBox,
-    QCheckBox,
-    QTextEdit,
-    QListWidget,
-    QLineEdit,
+
     QSystemTrayIcon
 )
 
-from PySide6.QtGui import QIcon, QImage, QPixmap
+from PySide6.QtGui import QIcon
 import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
 
-from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property, Signal, QObject, QTimer, QRunnable, Slot, QThreadPool
-from PySide6.QtGui import QPainter, QColor, QBrush, QAction
-import sys
-from qtpy.QtCore import QThread
-from stem import Signal as TorSignal
-from stem.control import Controller
-from stem import SocketClosed, OperationFailed
-from stem.connection import AuthenticationFailure
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QAction
 
-from proxy import get_free_port, load_blocked, remove_blocked, save_blocked, add_to_blocked_hosts, get_blocked
 from set_proxy import manage_proxy
-from tor import TorRunner, Runner, resource_path
-import os
-import json
-import cv2
-from pyzbar.pyzbar import decode
-import numpy
+from tor import resource_path
+
 import keyboard
 import threading
 import time
-from whatismyip import what_is_my_ip, check_connectivity
 
 import logging
 
