@@ -10,8 +10,9 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QTextEdit,
     QLineEdit,
+    QStackedWidget
 )
-
+from PySide6.QtCore import Qt
 import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
@@ -38,13 +39,41 @@ class SettingWindow(QWidget):
         self._parent = parent    
         main_layout = QVBoxLayout(self)
         self.setLayout(main_layout)
-
-        top_layout = QHBoxLayout(self)
-        main_layout.addLayout(top_layout)  
-
-        mode_layout = QHBoxLayout(self)
-        main_layout.addLayout(mode_layout)
         
+
+        top_layout = QHBoxLayout(self)        
+        btn_before_page = QPushButton("⬅️")
+        btn_before_page.clicked.connect(self.go_to_before_page)
+        
+        top_layout.addWidget(btn_before_page)
+        self.lbl_page_number = QLabel("0")
+        self.lbl_page_number.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_page_number.setFixedWidth(20)
+        top_layout.addWidget(self.lbl_page_number)
+        btn_next_page = QPushButton("➡️")
+        btn_next_page.clicked.connect(self.go_to_next_page)
+        top_layout.addWidget(btn_next_page)
+        
+        main_layout.addLayout(top_layout) 
+        
+        
+        self.page_setting = QStackedWidget()
+        main_layout.addWidget(self.page_setting)
+
+
+        self.first_page = QWidget()
+        self.first_page_layout = QVBoxLayout()
+        self.first_page.setLayout(self.first_page_layout)
+        self.page_setting.addWidget(self.first_page)
+
+        self.initialize_first_page()
+        self.initialize_second_page()
+        
+    def initialize_first_page(self):
+    
+        mode_layout = QHBoxLayout(self)
+        self.first_page_layout.addLayout(mode_layout)
+    
         btn_group_mode = QButtonGroup(self) 
         
         self.btn_dark = QRadioButton("dark", self)
@@ -61,21 +90,21 @@ class SettingWindow(QWidget):
         btn_bridge = QCheckBox("bridge", self)
         btn_bridge.setChecked(CONFIG.bridge)
         btn_bridge.stateChanged.connect(self.bridge_state_changed)
-        main_layout.addWidget(btn_bridge)
+        self.first_page_layout.addWidget(btn_bridge)
         
         self.inp_bridges = QTextEdit(self,placeholderText="Enter your bridges . . . (obfs4 or webtunnel)")
         self.inp_bridges.setText(CONFIG.bridges)
         self.inp_bridges.setEnabled(CONFIG.bridge)
         self.inp_bridges.textChanged.connect(self.set_bridges)
-        main_layout.addWidget(self.inp_bridges)
+        self.first_page_layout.addWidget(self.inp_bridges)
         btn_group_mode.buttonClicked.connect(self.change_mode)
         self.btn_qrcode = QPushButton("Qr-Code")
         self.btn_qrcode.clicked.connect(self.show_qrcode)
-        main_layout.addWidget(self.btn_qrcode)
+        self.first_page_layout.addWidget(self.btn_qrcode)
         
         max_circuit_dirtiness_layout = QHBoxLayout()
         max_circuit_dirtiness_layout.addWidget(QLabel("MaxCircuitDirtiness  "))
-        main_layout.addLayout(max_circuit_dirtiness_layout)
+        self.first_page_layout.addLayout(max_circuit_dirtiness_layout)
         
         self.inp_MaxCircuitDirtiness = QLineEdit(str(self._parent.proxyWidget.tor.MaxCircuitDirtiness))
         
@@ -85,9 +114,8 @@ class SettingWindow(QWidget):
         self.lbl_MaxCircuitDirtiness = QLabel("✅")
         max_circuit_dirtiness_layout.addWidget(self.lbl_MaxCircuitDirtiness)
         
-        
         newnym_layout = QHBoxLayout()
-        main_layout.addLayout(newnym_layout)
+        self.first_page_layout.addLayout(newnym_layout)
         newnym_layout.addWidget(QLabel("SIGNAL NEWNYM sends every"))
         self.newnym_inp = QLineEdit(str(self._parent.proxyWidget.timer.interval()))
         newnym_layout.addWidget(self.newnym_inp)
@@ -96,9 +124,27 @@ class SettingWindow(QWidget):
         self.newnym_lbl_stat = QLabel(f"({self._parent.proxyWidget.timer.interval()//1000} sec)  ✅")
         newnym_layout.addWidget(self.newnym_lbl_stat)
         self.qrcode_widget = QrCodeFloatingWindow(self)
-
       
         self.threadpool = QThreadPool()
+
+    def initialize_second_page(self):
+        self.second_page = QWidget()
+        self.page_setting.addWidget(self.second_page)
+        
+        self.second_page_layout = QVBoxLayout()
+        self.second_page.setLayout(self.second_page_layout)
+        
+    
+    def go_to_before_page(self):
+        current_index = self.page_setting.currentIndex()
+        self.page_setting.setCurrentIndex(current_index - 1)
+        self.lbl_page_number.setText(f"{self.page_setting.currentIndex()}")
+        
+    
+    def go_to_next_page(self):
+        current_index = self.page_setting.currentIndex()
+        self.page_setting.setCurrentIndex(current_index +1)
+        self.lbl_page_number.setText(f"{self.page_setting.currentIndex()}")
         
         
     def show_qrcode(self):
@@ -164,4 +210,4 @@ class SettingWindow(QWidget):
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
             CONFIG.mode= "dark"
             self._parent.toggle_btn.setText("🌛")
-          
+
