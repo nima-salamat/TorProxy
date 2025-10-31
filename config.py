@@ -5,7 +5,9 @@ import json
 
 class Config:
     file_config = "config.json"
-    default_data = {"bridges": "", "bridge":False, "mode": "dark"}
+    default_data = {"bridges": "", "bridge":False, "mode": "dark", "tor_port": None, "tor_port_checked": None,
+                    "proxy_port": None, "proxy_port_checked": None, "control_port": None, "control_port_checked": None,
+                    "dns_port": None, "dns_port_checked": None}
     data = {"bridges": "", "bridge":False, "mode": "dark"}
     
     def __getitem__(self, name):

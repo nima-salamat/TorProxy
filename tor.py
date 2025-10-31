@@ -59,7 +59,6 @@ class TorRunner:
         self.thread.start()
         logger.debug("Thread tor runner started")
         
-    
     def generate_torcc(self):
         config = [
             f"SocksPort {self.socks_port}",
