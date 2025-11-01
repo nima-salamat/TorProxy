@@ -122,10 +122,28 @@ class TorRunner:
                     self.app_window.data.value = lst[lst.index("Bootstrapped") + 1]
                     self.app_window.logs_widget.update_log(line.decode())
 
+        self.proc.wait()
+        self.app_window._stop_services()
+
     def stop(self):
-        if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
-        if self.thread: self.thread.join(); self.thread=None
-        if os.path.exists("temp_torrc.txt"): os.remove("temp_torrc.txt")
+        try:
+            if self.proc:
+                self.proc.terminate()
+                self.proc.wait()
+                self.proc = None
+
+            if self.thread and self.thread.is_alive():
+                self.thread.join()
+            self.thread = None
+
+            if os.path.exists("temp_torrc.txt"):
+                os.remove("temp_torrc.txt")
+        except Exception as e:
+            logger.error(f"Error while stopping: {e}")
+            try:
+                self.connect_btn.toggle_state()
+            except Exception:
+                pass
 
 # ====== Proxy Controller ======
 class Runner:
