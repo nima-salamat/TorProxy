@@ -19,6 +19,27 @@ def get_free_port():
         s.bind(('', 0))
         return s.getsockname()[1]
 
+def is_port_free(host: str, port: int, timeout: float = 0.15) -> bool:
+    try:
+        for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            s = socket.socket(af, socktype, proto)
+            try:
+                s.settimeout(timeout)
+                rc = s.connect_ex(sa)
+                s.close()
+                if rc == 0:
+                    return False
+            except Exception:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+                continue
+        return True
+    except Exception:
+        return True
+    
 def load_blocked():
     global blocked_hosts
     if os.path.exists(BLOCKED_FILE):
