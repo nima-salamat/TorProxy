@@ -2,6 +2,8 @@ from PySide6.QtWidgets import (
 QApplication, QMessageBox
 )
 from PySide6.QtGui import QIcon
+from PySide6.QtCore import QTimer
+
 import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
@@ -10,7 +12,7 @@ from ui import Window, resource_path
 from config import CONFIG
 import psutil
 import os
-
+import signal
 import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -47,7 +49,7 @@ def check_old_processes():
                         logger.info("NO:User decieded to end program.")
                         logger.info("Exiting...")
                         
-                        app.quit()
+                        close_program()
                         sys.exit()
 
             except Exception as e: 
@@ -74,8 +76,15 @@ def save_current_pid():
     with open(resource_path(PID_FILE), "w") as f:
         f.write(str(pid)) 
 
+def close_program(*_, **__):
+    logger.info("Exiting . . .")
+    QTimer.singleShot(0, app.quit)
+    
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    signal.signal(signal.SIGINT, close_program)
+    
     logger.info(f" App PID={os.getpid()}")
     check_old_processes()
     save_current_pid()
@@ -87,4 +96,7 @@ if __name__ == "__main__":
         app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
     win = Window()
     win.show()
-    app.exec()
+    try:
+        app.exec()
+    finally:
+        logger.info("Application exited")
