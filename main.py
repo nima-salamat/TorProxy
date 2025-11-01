@@ -78,7 +78,9 @@ def save_current_pid():
 
 def close_program(*_, **__):
     logger.info("Exiting . . .")
+    win.proxyWidget._stop_services()
     QTimer.singleShot(0, app.quit)
+    
     
 
 if __name__ == "__main__":

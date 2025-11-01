@@ -109,19 +109,11 @@ class Window(QMainWindow):
                 self.show()
             else:
                 self.hide()
-        # self.tray_icon.show()
-        
-    
-    def close(self):
-        self.listener_running = False
-        self.listener_thread.join()
-        self.show()
-        super().close()
         
     def closeEvent(self, event):
         self.listener_running = False
         self.listener_thread.join()
-        if self.proxyWidget.running: self.proxyWidget.proxy.stop(); self.proxyWidget.tor.stop(); manage_proxy("127.0.0.1", 0, "clear")
+        self.proxyWidget._stop_services()
         event.accept()
 
     def _createMenuBar(self):
