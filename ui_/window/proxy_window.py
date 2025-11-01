@@ -305,14 +305,15 @@ class ProxyWindow(QWidget):
             if raw is None or str(raw).strip() == "":
                 failures.append(f"{human}: enabled but no value provided.")
                 continue
-            elif int(raw) in ports.values():
-                failures.append(f"{human}: This port is duplicated.")
-                continue
 
             try:
                 p = int(raw)
             except Exception:
                 failures.append(f"{human}: value '{raw}' is not a valid integer.")
+                continue
+                
+            if int(raw) in ports.values():
+                failures.append(f"{human}: This port is duplicated.")
                 continue
 
             if not (1 <= p <= 65535):
