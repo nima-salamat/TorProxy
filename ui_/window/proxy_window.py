@@ -14,7 +14,7 @@ from stem.control import Controller
 from stem import SocketClosed, OperationFailed
 from stem.connection import AuthenticationFailure
 
-from proxy import get_free_port
+from proxy import get_free_port, is_port_free
 from set_proxy import manage_proxy
 from tor import TorRunner, Runner
 
@@ -24,7 +24,7 @@ from ui_.btn.pulse_button import PulseButton
 from ui_.worker.worker import Worker
 from ui_.worker.utils import Data
 from config import CONFIG
-
+import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,6 @@ class ProxyWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.data = Data()
-        self.threadpool = QThreadPool()
         self.running = False
         self.connected = False
         self._parent = parent
@@ -105,7 +104,7 @@ class ProxyWindow(QWidget):
         worker = Worker(
             self.change_identity
         )
-        self.threadpool.start(worker)
+        self.thread_pool.start(worker)
 
     def change_identity(self):
         if not self.connected:
@@ -142,7 +141,7 @@ class ProxyWindow(QWidget):
                 self._parent._notify("T⭕®️🌐🅿️®️⭕❌Y","🌐Connected 💯%")
             self.connected = True
             self.controller =  Controller.from_port(address="127.0.0.1", port=self.tor_control_port)
-            manage_proxy("127.0.0.1", self.proxy_port, "set")
+            manage_proxy("127.0.0.1", self.proxy.port, "set")
             self.btn_status.setText("connected")
             self.set_btn_status_style("connected")
             
@@ -168,29 +167,206 @@ class ProxyWindow(QWidget):
             }
         """%(color))
         
-        
     def _toggle(self):
-        if not self.running:
+        if self.running:
+            self._stop_services()
+            return
+
+        self.connect_btn.setEnabled(False)
+        self.btn_status.setText("checking ports ...")
+        self.set_btn_status_style("connecting")
+
+        worker = Worker(self._check_ports_worker)
+        worker.signals.finished.connect(self._on_ports_checked)
+        self.thread_pool.start(worker)
+
+    # ===== slot that runs on main thread with the result =====
+    def _on_ports_checked(self, result):
+        """
+        result == (ok, ports, messages)
+        This runs in the GUI thread so it's safe to touch UI and self.proxy/self.tor.
+        """
+
+        try:
+            ok, ports, messages = json.loads(result)
+        except Exception:
+            ok = False
+            ports = {}
+            messages = [f"Invalid result from port checker: {result!r}"]
+
+        # log messages to widget (safe in main thread)
+        for m in messages:
             try:
-                self.proxy.start(); self.tor.start()
-                self.btn_status.setText("connecting . . .")
-                self.set_btn_status_style("connecting")
-                self.running=True
+                self.logs_widget.update_log(m)
+            except Exception:
+                logger.info("log: %s", m)
 
+        if not ok:
+            # failed -> re-enable button and set disconnected style
+            self.set_btn_status_style("disconnected")
+            self.btn_status.setText("port check failed")
+            self.connect_btn.setEnabled(True)
+            self.connect_btn.toggle_state()
+            return
+
+        # ok==True -> attempt to set ports and start services (on main thread)
+        try:
+            # set ports from the ports dict (only keys that passed checks)
+            if "proxy_port" in ports:
+                self.proxy.port = ports["proxy_port"]
+            if "tor_port" in ports:
+                self.tor.socks_port = ports["tor_port"]
+                self.proxy.tor_socks_port = ports["tor_port"]
+            if "control_port" in ports:
+                self.tor.control_port = ports["control_port"]
+            if "dns_port" in ports:
+                self.tor.dns_port = ports["dns_port"]
+
+            # start services (wrap try/except)
+            self.btn_status.setText("connecting . . .")
+            self.set_btn_status_style("connecting")
+
+            try:
+                self.proxy.start()
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"Start failed: {e}")
-                self.proxy.stop(); self.tor.stop()
-                self.running = False 
-                self.connected = False
-                return
-        else:
-            self.lbl_percent.setText("0%")
-            self.proxy.stop(); self.tor.stop(); manage_proxy("127.0.0.1", 0, "clear")
+                logger.exception("proxy.start() failed: %s", e)
+                raise
 
+            try:
+                self.tor.start()
+            except Exception as e:
+                logger.exception("tor.start() failed: %s", e)
+                # if tor fails, try to stop proxy to avoid half-start
+                try:
+                    self.proxy.stop()
+                except Exception:
+                    logger.exception("Stopping proxy after tor.start failure also failed.")
+                raise
+
+            self.running = True
+            # Don't mark connected True until your Data signals 100% (existing logic)
+            self.logs_widget.update_log("Started proxy and tor successfully.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Start failed: {e}")
             self.running = False
             self.connected = False
             self.btn_status.setText("disconnected")
             self.set_btn_status_style("disconnected")
+        finally:
+            # always re-enable the button
+            self.connect_btn.setEnabled(True)
+
+   # ===== helper worker (runs in background) =====
+    def _check_ports_worker(self):
+        """
+        Pure worker: no GUI ops here.
+        Returns (ok: bool, ports: dict, messages: list[str])
+        Clear and explicit failures list is used so we know دقیقاً چرا fail شده.
+        """
+        messages = []
+        failures = []
+        ports = {}
+
+        checks = [
+            ("proxy_port", "proxy_port_checked", "proxy port"),
+            ("tor_port", "tor_port_checked", "tor socks port"),
+            ("control_port", "control_port_checked", "tor control port"),
+            ("dns_port", "dns_port_checked", "dns port"),
+        ]
+
+        for cfg_key, checked_key, human in checks:
+            # read checked flag (use try/except because CONFIG may not have key)
+            try:
+                raw_checked = CONFIG[checked_key]
+            except KeyError:
+                # treat missing checked flag as disabled (like you asked)
+                messages.append(f"{human}: missing checked flag '{checked_key}', treating as disabled.")
+                continue
+
+            checked = bool(raw_checked)
+            messages.append(f"{human}: checked={checked}")
+
+            # read raw port value
+            try:
+                raw = CONFIG[cfg_key]
+            except KeyError:
+                raw = None
             
-           
-            
+                
+                
+                
+
+            messages.append(f"{human}: value={raw!r}")
+
+            if not checked:
+                messages.append(f"{human}: disabled, skipping.")
+                continue
+
+            if raw is None or str(raw).strip() == "":
+                failures.append(f"{human}: enabled but no value provided.")
+                continue
+            elif int(raw) in ports.values():
+                failures.append(f"{human}: This port is duplicated.")
+                continue
+
+            try:
+                p = int(raw)
+            except Exception:
+                failures.append(f"{human}: value '{raw}' is not a valid integer.")
+                continue
+
+            if not (1 <= p <= 65535):
+                failures.append(f"{human}: port {p} out of valid range (1-65535).")
+                continue
+
+            # Check port free (bind-based). Wrap in try/except and log result.
+            try:
+                free = is_port_free("127.0.0.1", p)
+            except Exception as e:
+                free = False
+                failures.append(f"{human}: error while checking port: {e}")
+                logger.exception("is_port_free error for %s:%s", human, p)
+                continue
+
+            if not free:
+                failures.append(f"{human}: port {p} not free.")
+            else:
+                messages.append(f"{human}: port {p} is free.")
+                ports[cfg_key] = p
+
+        # finalize messages and ok
+        if failures:
+            messages.append("Port checks failed.")
+            messages.extend(failures)
+            ok = False
+        else:
+            messages.append("All requested ports OK.")
+            ok = True
+
+        return json.dumps([ok, ports, messages])
+
+    def _stop_services(self):
+        manage_proxy("127.0.0.1", self.proxy.port, "clear")
+        self.btn_status.setText("disconnecting . . .")
+        self.set_btn_status_style("disconnecting")
+
+        try:
+            if self.proxy:
+                self.proxy.stop()
+                self.logs_widget.update_log("Proxy stopped.")
+            if self.tor:
+                self.tor.stop()
+                self.logs_widget.update_log("Tor stopped.")
+        except Exception as e:
+            logger.exception("Error stopping services: %s", e)
+            self.logs_widget.update_log(f"Error while stopping services: {e}")
+
+        
+        self.running = False
+        self.connected = False
+        self.lbl_percent.setText("0%")
+        self.btn_status.setText("disconnected")
+        self.set_btn_status_style("disconnected")
+        self.connect_btn.connected = False
+        self.connect_btn.updateStyle()
+        self.connect_btn.setEnabled(True)
