@@ -11,7 +11,10 @@ import logging
 logger = logging.getLogger(__name__)
 # ====== Config & Globals ======
 BLOCKED_FILE = 'blocked_hosts.json'
+EXCLUDE_FILE = 'exclude_hosts.json'
+
 blocked_hosts = []
+exclude_hosts = []
 
 
 def get_free_port():
@@ -40,6 +43,8 @@ def is_port_free(host: str, port: int, timeout: float = 0.15) -> bool:
     except Exception:
         return True
     
+    
+# --- blocked hosts ---
 def load_blocked():
     global blocked_hosts
     if os.path.exists(BLOCKED_FILE):
@@ -58,6 +63,7 @@ def add_to_blocked_hosts(host):
             return True
     return False
 
+
 def get_blocked():
     return blocked_hosts
 
@@ -68,6 +74,43 @@ def save_blocked():
     with open(BLOCKED_FILE, 'w') as f:
         json.dump(blocked_hosts, f, indent=2)
 
+# --- exclude hosts ---
+def load_exclude():
+    global exclude_hosts
+    if os.path.exists(EXCLUDE_FILE):
+        try:
+            with open(EXCLUDE_FILE, 'r') as f:              
+                exclude_hosts = json.load(f)
+        except:
+            logger.error('error in loading exclude hosts')
+            exclude_hosts = []
+    else:
+        exclude_hosts = []
+
+def add_to_exclude_hosts(host):
+    if host not in exclude_hosts:
+            exclude_hosts.append(host)
+            return True
+    return False
+      
+def get_exclude():
+    return exclude_hosts
+
+def remove_exclude(host):
+    exclude_hosts.remove(host)
+
+def save_exclude():
+    with open(EXCLUDE_FILE, 'w') as f:
+        json.dump(exclude_hosts, f, indent=2)
+
+# --- save all ---
+def save_all():
+    
+    with open(EXCLUDE_FILE, 'w') as f:
+        json.dump(exclude_hosts, f, indent=2)
+    
+    with open(BLOCKED_FILE, 'w') as f:
+        json.dump(blocked_hosts, f, indent=2)
 
 # ====== Proxy Handler ======
 class ProxyHandler(BaseHTTPRequestHandler):
@@ -87,9 +130,24 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.send_error(403, "Forbidden: Blocked")
             logger.debug(f"BLOCKED {host}:{port}")
             return
+
+        proxy = True
+        
+        for i in exclude_hosts:
+              if i.startswith("*"):
+                if host.endswith(i[1:]):
+                   proxy = False
+        if host in exclude_hosts or any([host.endswith("."+i) for i in exclude_hosts]):
+            logger.debug(f"exclude {host}:{port}")
+            
+            proxy = False
+
         try:
+            
             remote = socks.socksocket()
-            remote.set_proxy(socks.SOCKS5, "127.0.0.1", self.server.tor_socks_port, rdns=True)
+            if proxy:
+                remote.set_proxy(socks.SOCKS5, "127.0.0.1", self.server.tor_socks_port, rdns=True)
+            
             remote.connect((host, port))
             self.send_response(200, "Connection Established")
             self.end_headers()
