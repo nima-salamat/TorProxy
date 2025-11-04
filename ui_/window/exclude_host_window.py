@@ -9,20 +9,19 @@ from PySide6.QtWidgets import (
     QLabel
 )
 from PySide6.QtCore import Qt, QThreadPool
-from proxy import load_blocked, remove_blocked, save_blocked, add_to_blocked_hosts, get_blocked
+from proxy import load_exclude, remove_exclude, save_exclude, add_to_exclude_hosts, get_exclude
 from ui_.worker.worker import Worker
 import logging
 logger = logging.getLogger(__name__)
 
-class BlcokHostsWindow(QWidget):
+class ExcludeHostsWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent) 
         self._parent = parent    
         main_layout = QVBoxLayout(self)
         self.setLayout(main_layout)
-        main_layout.addWidget(QLabel("Block host:"))
-        
-        load_blocked()
+        main_layout.addWidget(QLabel("Exclude host:"))
+        load_exclude()
 
         self.hosts_list = QListWidget()
         main_layout.addWidget(self.hosts_list)
@@ -52,23 +51,23 @@ class BlcokHostsWindow(QWidget):
                 QMessageBox.No
             )
             if reply == QMessageBox.Yes:
-                remove_blocked(item.text())
+                remove_exclude(item.text())
                 self.hosts_list.takeItem(self.hosts_list.row(item))
                 worker = Worker(
-                    save_blocked
+                    save_exclude
                 )
                 self.threadpool.start(worker)
     
     def _update_hosts_list(self):
         self.hosts_list.clear()
-        for host in get_blocked():
+        for host in get_exclude():
             self.hosts_list.addItem(host)
         
     def add_to_list(self):
         host = self.inp_host.text()
-        if host and add_to_blocked_hosts(host):
+        if host and add_to_exclude_hosts(host):
             worker = Worker(
-                save_blocked
+                save_exclude
             )
             self.threadpool.start(worker)
             self.hosts_list.addItem(host)
