@@ -38,6 +38,8 @@ from ui_.window.proxy_window import ProxyWindow
 from ui_.window.custom_titlebar import CustomTitleBar
 from ui_.window.setting_window import SettingWindow
 from ui_.window.block_host_window import BlcokHostsWindow
+from ui_.window.exclude_host_window import ExcludeHostsWindow
+
 
 class Window(QMainWindow):
     toggle_visibility_signal = Signal()
@@ -63,6 +65,9 @@ class Window(QMainWindow):
         
         self.block_host_window = BlcokHostsWindow(self)
         self.stack.addWidget(self.block_host_window)
+        
+        self.exclude_host_window = ExcludeHostsWindow(self)
+        self.stack.addWidget(self.exclude_host_window)
         
         self.title_bar = CustomTitleBar(self)
         self.main_layout.addWidget(self.title_bar)
@@ -140,6 +145,13 @@ class Window(QMainWindow):
         block_action.setToolTip("Ctrl+B")
         block_action.triggered.connect(self._show_block_host)
         menuBar.addAction(block_action)
+        
+        # --- Block Host ---
+        exclude_action = QAction("    Exclude Host🌌    ", self)
+        exclude_action.setShortcut("Ctrl+E")
+        exclude_action.setToolTip("Ctrl+E")
+        exclude_action.triggered.connect(self._show_exclude_host)
+        menuBar.addAction(exclude_action)
 
         # --- Help ---
         help_action = QAction("    Help❕    ", self)
@@ -209,6 +221,9 @@ class Window(QMainWindow):
     
     def _show_block_host(self):
         self.stack.setCurrentIndex(2)
-         
+    
+    def _show_exclude_host(self):
+        self.stack.setCurrentIndex(3)
+        
     def _notify(self, title, message):
         self.tray_icon.showMessage(title, message, QSystemTrayIcon.Information, 2000)
