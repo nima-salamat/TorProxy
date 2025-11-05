@@ -6,7 +6,6 @@ handle windows linux system first diagnose and set
 import os
 import platform
 
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -27,6 +26,8 @@ class Os:
     Windows = "Windows"
     Linux = "Linux"
 
+def get_os_name():
+    return platform.system()    
 
 class Handler:
     def __init__(self, host, port):
@@ -65,20 +66,34 @@ class Handler:
         except Exception as e:
             logger.error(f"[!] set_proxy error: {e}")
             return False
-        
+
+    def set_linux_proxy(self):
+        logger.debug(f"Setting Linux proxy")
+        os.system(f"export http_proxy={self.host}:{self.port}")
+        os.system(f"export http_proxy={self.host}:{self.port}")
+
+    def clear_linux_proxy(self):
+        logger.debug(f"Clearing Linux proxy")
+        os.system("unset http_proxy https_proxy")
     
 action_list = ["set", "clear"]
 
 def manage_proxy(host, port, action="set"):
-    
-    operating_system = platform.system()
+    operating_system = get_os_name()
     if operating_system == Os.Windows:
         handler = Handler(host, port)
         if action == action_list[0]:
             handler.set_windows_proxy()
         elif action == action_list[1]:
             handler.clear_windows_proxy()
-    # linux system not implemented yet
+            
+    elif operating_system == Os.Linux:
+        handler = Handler(host, port)
+        if action == action_list[0]:
+            handler.set_linux_proxy()
+        elif action == action_list[1]:
+            handler.clear_linux_proxy()
+            
     else:
         logger.error("Operating system not supported")
         return False
