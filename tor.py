@@ -3,6 +3,7 @@ import subprocess
 import sys
 import platform
 import os
+from set_proxy import get_os_name, Os
 from proxy import  ProxyHandler, ThreadedHTTPServer
 
 import logging
@@ -52,6 +53,7 @@ class TorRunner:
         self.Log = "notice stdout"        
                         
         self.bridge_types = ["obfs4", "webtunnel", "meek", "snowflake", "scramblesuit", "fte"]
+        self.operating_system = get_os_name()
         
     def start(self):
         if self.proc: return
@@ -64,8 +66,8 @@ class TorRunner:
             f"SocksPort {self.socks_port}",
             f"ControlPort {self.contorl_port}", 
             f"DNSPort {self.dns_port}",
-            f"GeoIPFile {geoip_path}",
-            f"GeoIPv6File {geoip6_path}",
+            f"GeoIPFile {geoip_path}" if self.operating_system == Os.Windows else "",
+            f"GeoIPv6File {geoip6_path}" if self.operating_system == Os.Windows else "",
             f"Log {self.Log}",
             f"MaxCircuitDirtiness {self.MaxCircuitDirtiness}",
             f"NewCircuitPeriod {self.NewCircuitPeriod}",
@@ -108,9 +110,15 @@ class TorRunner:
         
         if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
         
-        flags = subprocess.CREATE_NO_WINDOW if platform.system()=="Windows" else 0
-        self.proc = subprocess.Popen([tor_path, "-f", "temp_torrc.txt"],
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
+        flags = subprocess.CREATE_NO_WINDOW if self.operating_system == Os.Windows else 0
+        
+        if self.operating_system == Os.Windows:
+            self.proc = subprocess.Popen([tor_path, "-f", "temp_torrc.txt"],
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
+        else:
+            self.proc = subprocess.Popen(["tor", "-f", "temp__torcc.txt"],
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
+
         with open(resource_path("pid"), "a") as f:
             f.write("\n"+str(self.proc.pid))
         with open(self.log_file, 'w') as f:
