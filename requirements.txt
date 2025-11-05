@@ -1,7 +1,7 @@
 PySide6
 QDarkStyle
 stem
-py-socks
+pysocks
 opencv-python
 numpy
 pyzbar
