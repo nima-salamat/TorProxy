@@ -9,7 +9,7 @@ from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
 import sys
 from ui import Window, resource_path
-from config import CONFIG
+from config import CONFIG, IS_WINDOWS, OS_NAME
 import psutil
 import os
 import signal
@@ -17,9 +17,8 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-from set_proxy import get_os_name, Os
-logger.info(f"os type: {get_os_name()}")
-if get_os_name() == Os.Windows:
+logger.info(f"os type: {OS_NAME}")
+if IS_WINDOWS:
     import ctypes
     HWND = ctypes.wintypes.HWND
     WDA_MONITOR = 1 
@@ -108,7 +107,7 @@ if __name__ == "__main__":
         app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
     win = Window()
     
-    if get_os_name() == Os.Windows:
+    if IS_WINDOWS:
         hwnd = int(win.winId())
         SetWindowDisplayAffinity(hwnd, WDA_MONITOR)
     

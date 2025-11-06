@@ -3,7 +3,7 @@ import subprocess
 import sys
 import platform
 import os
-from set_proxy import get_os_name, Os
+from config import IS_WINDOWS
 from proxy import  ProxyHandler, ThreadedHTTPServer
 
 import logging
@@ -53,7 +53,6 @@ class TorRunner:
         self.Log = "notice stdout"        
                         
         self.bridge_types = ["obfs4", "webtunnel", "meek", "snowflake", "scramblesuit", "fte"]
-        self.operating_system = get_os_name()
         
     def start(self):
         if self.proc: return
@@ -66,8 +65,8 @@ class TorRunner:
             f"SocksPort {self.socks_port}",
             f"ControlPort {self.contorl_port}", 
             f"DNSPort {self.dns_port}",
-            f"GeoIPFile {geoip_path}" if self.operating_system == Os.Windows else "",
-            f"GeoIPv6File {geoip6_path}" if self.operating_system == Os.Windows else "",
+            f"GeoIPFile {geoip_path}" if IS_WINDOWS else "",
+            f"GeoIPv6File {geoip6_path}" if IS_WINDOWS else "",
             f"Log {self.Log}",
             f"MaxCircuitDirtiness {self.MaxCircuitDirtiness}",
             f"NewCircuitPeriod {self.NewCircuitPeriod}",
@@ -90,7 +89,7 @@ class TorRunner:
                 config.extend(
                     [
                        "UseBridges 1",
-                       'ClientTransportPlugin %s exec '%(bridge_type)+ (lyrebird_path if self.operating_system == Os.Windows else "assets/lyrebird"),
+                       'ClientTransportPlugin %s exec '%(bridge_type)+ (lyrebird_path if IS_WINDOWS else "assets/lyrebird"),
                        bridges
                         
                     ]
@@ -108,9 +107,9 @@ class TorRunner:
         
         if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
         
-        flags = subprocess.CREATE_NO_WINDOW if self.operating_system == Os.Windows else 0
+        flags = subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0
         
-        if self.operating_system == Os.Windows:
+        if IS_WINDOWS:
             self.proc = subprocess.Popen([tor_path, "-f", "temp_torrc.txt"],
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
         else:
@@ -129,7 +128,8 @@ class TorRunner:
                     self.app_window.logs_widget.update_log(line.decode())
         
         try:
-            self.proc.wait()
+            if IS_WINDOWS:
+                self.proc.wait()
         except AttributeError:
             pass
         finally:
