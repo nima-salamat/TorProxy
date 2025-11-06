@@ -17,6 +17,17 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+from set_proxy import get_os_name, Os
+logger.info(f"os type: {get_os_name()}")
+if get_os_name() == Os.Windows:
+    import ctypes
+    HWND = ctypes.wintypes.HWND
+    WDA_MONITOR = 1 
+    SetWindowDisplayAffinity = ctypes.windll.user32.SetWindowDisplayAffinity
+    SetWindowDisplayAffinity.argtypes = [HWND, ctypes.wintypes.DWORD]
+    SetWindowDisplayAffinity.restype = ctypes.wintypes.BOOL
+
+
 PID_FILE = "pid"
 
 def check_old_processes():
@@ -97,7 +108,13 @@ if __name__ == "__main__":
     else:
         app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
     win = Window()
+    
+    if get_os_name() == Os.Windows:
+        hwnd = int(win.winId())
+        SetWindowDisplayAffinity(hwnd, WDA_MONITOR)
+    
     win.show()
+    
     try:
         app.exec()
     finally:
