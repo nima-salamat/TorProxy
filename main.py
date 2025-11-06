@@ -27,7 +27,6 @@ if get_os_name() == Os.Windows:
     SetWindowDisplayAffinity.argtypes = [HWND, ctypes.wintypes.DWORD]
     SetWindowDisplayAffinity.restype = ctypes.wintypes.BOOL
 
-
 PID_FILE = "pid"
 
 def check_old_processes():

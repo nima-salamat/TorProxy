@@ -87,13 +87,11 @@ class TorRunner:
                     break
             if bridge_type:
                 bridges = self.bridges.replace(bridge_type, "Bridge %s"%(bridge_type))
-                print(bridges)
                 config.extend(
                     [
                        "UseBridges 1",
-                       'ClientTransportPlugin %s exec '%(bridge_type)+ lyrebird_path,
+                       'ClientTransportPlugin %s exec '%(bridge_type)+ (lyrebird_path if self.operating_system == Os.Windows else "assets/lyrebird"),
                        bridges
-                       
                         
                     ]
                 )
@@ -116,7 +114,7 @@ class TorRunner:
             self.proc = subprocess.Popen([tor_path, "-f", "temp_torrc.txt"],
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
         else:
-            self.proc = subprocess.Popen(["tor", "-f", "temp__torcc.txt"],
+            self.proc = subprocess.Popen(["tor", "-f", "temp_torrc.txt"],
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
 
         with open(resource_path("pid"), "a") as f:
@@ -129,9 +127,13 @@ class TorRunner:
                     logger.debug(f"[{line.decode()}]")
                     self.app_window.data.value = lst[lst.index("Bootstrapped") + 1]
                     self.app_window.logs_widget.update_log(line.decode())
-
-        self.proc.wait()
-        self.app_window._stop_services()
+        
+        try:
+            self.proc.wait()
+        except AttributeError:
+            pass
+        finally:
+            self.app_window._stop_services()
 
     def stop(self):
         try:
