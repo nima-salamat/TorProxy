@@ -69,12 +69,20 @@ class Handler:
 
     def set_linux_proxy(self):
         logger.debug(f"Setting Linux proxy")
-        os.system(f"export http_proxy={self.host}:{self.port}")
-        os.system(f"export http_proxy={self.host}:{self.port}")
+        if "DISPLAY" in os.environ and os.environ["DISPLAY"]:
+            os.system("gsettings set org.gnome.system.proxy mode 'manual'")
+            os.system(f"gsettings set org.gnome.system.proxy.http host '{self.host}'")
+            os.system(f"gsettings set org.gnome.system.proxy.http port {self.port}")
+            return True
+        return False
 
     def clear_linux_proxy(self):
         logger.debug(f"Clearing Linux proxy")
-        os.system("unset http_proxy https_proxy")
+        if "DISPLAY" in os.environ and os.environ["DISPLAY"]:
+            os.system("gsettings set org.gnome.system.proxy mode 'none'")
+            return True
+        return False
+            
     
 action_list = ["set", "clear"]
 

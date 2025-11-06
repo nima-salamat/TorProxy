@@ -85,7 +85,7 @@ class ProxyWindow(QWidget):
         self.thread_pool = QThreadPool()
     
     def whatismyip_clicked(self):
-        self.worker = Worker(lambda: what_is_my_ip()) 
+        self.worker = Worker(lambda: what_is_my_ip() 
         self.worker.signals.finished.connect(lambda x: self.tor_ip_label.setText("ip: " + x) or self.btn_whatismyip.setEnabled(True))
         self.worker.signals.error.connect(lambda e: self.tor_ip_label.setText("ip: error") or self.btn_whatismyip.setEnabled(True))
         self.thread_pool.start(self.worker)
