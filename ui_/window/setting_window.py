@@ -238,19 +238,18 @@ class SettingWindow(QWidget):
 
     def show_qrcode(self):
         worker = Worker(self.qrcode_widget.run)
-        worker.signals.finished.connect(lambda x: self.show_qrcode_widget())
+        worker.signals.finished.connect(self.show_qrcode_widget)
         worker.signals.error.connect(self.show_qrcode_widget)
         self.threadpool.start(worker)
         self.btn_qrcode.setDisabled(True)
 
     def show_qrcode_widget(self, *args):
-        if not args:
-            self.qrcode_widget.setParent(self)
-            self.qrcode_widget.move(80, 0)
-            self.qrcode_widget.show()
-            self.qrcode_widget.timer.start(30)
+        self.qrcode_widget.setParent(self)
+        self.qrcode_widget.move(80, 0)
+        self.qrcode_widget.show()
+        self.qrcode_widget.timer.start(30)
         self.btn_qrcode.setEnabled(True)
-
+        
     def newnym_inp_changed(self):
         text = self.newnym_inp.text().strip()
         if text and text.isdigit() and 0 < int(text) < 2_147_483_647:
@@ -291,7 +290,7 @@ class SettingWindow(QWidget):
         CONFIG["bridges"] = txt
 
     def bridge_state_changed(self, state):
-        checked = (state == Qt.CheckState.Checked)
+        checked = bool(state)
         try:
             self._parent.proxyWidget.tor.bridge = checked
         except Exception:
