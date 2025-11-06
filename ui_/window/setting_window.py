@@ -28,7 +28,12 @@ logger = logging.getLogger(__name__)
 from config import CONFIG
 from ui_.worker.worker import Worker
 from ui_.window.qrcode_widget import QrCodeFloatingWindow
+from config import IS_WINDOWS
 
+WRONG = "❌" if IS_WINDOWS else "wrong"
+CORRECT = "✅" if IS_WINDOWS else "correct"
+LIGHT = "🌞" if IS_WINDOWS else "light"
+DARK = "🌛" if IS_WINDOWS else "dark"
 
 class SettingWindow(QWidget):
     def __init__(self, parent=None):
@@ -112,7 +117,7 @@ class SettingWindow(QWidget):
         self.inp_MaxCircuitDirtiness = QLineEdit(str(start_val))
         max_circuit_dirtiness_layout.addWidget(self.inp_MaxCircuitDirtiness)
         self.inp_MaxCircuitDirtiness.textChanged.connect(self.MaxCircuitDirtiness_changed)
-        self.lbl_MaxCircuitDirtiness = QLabel("✅")
+        self.lbl_MaxCircuitDirtiness = QLabel(CORRECT)
         max_circuit_dirtiness_layout.addWidget(self.lbl_MaxCircuitDirtiness)
 
         newnym_layout = QHBoxLayout()
@@ -129,7 +134,7 @@ class SettingWindow(QWidget):
         newnym_layout.addWidget(self.newnym_inp)
         self.newnym_inp.textChanged.connect(self.newnym_inp_changed)
         newnym_layout.addWidget(QLabel("mili sec"))
-        self.newnym_lbl_stat = QLabel(f"({int(newnym_start)//1000} sec)  ✅")
+        self.newnym_lbl_stat = QLabel(f"({int(newnym_start)//1000} sec) "+ CORRECT)
         newnym_layout.addWidget(self.newnym_lbl_stat)
         self.qrcode_widget = QrCodeFloatingWindow(self)
 
@@ -155,7 +160,7 @@ class SettingWindow(QWidget):
             enabled_initial = bool(CONFIG[port + "_checked"]) if CONFIG[port + "_checked"] is not None else False
             inp_port.setEnabled(enabled_initial)
 
-            lbl_status = QLabel("✅" if enabled_initial and self._is_valid_port(current_val) else "❌")
+            lbl_status = QLabel(CORRECT if enabled_initial and self._is_valid_port(current_val) else WRONG)
             check_port = QCheckBox()
             check_port.setChecked(enabled_initial)
 
@@ -180,7 +185,7 @@ class SettingWindow(QWidget):
             value = str(text).strip()
 
         if value and self._is_valid_port(value):
-            lbl_status.setText("✅")
+            lbl_status.setText(CORRECT)
             try:
                 CONFIG[port] = int(value)
             except Exception:
@@ -194,7 +199,7 @@ class SettingWindow(QWidget):
             except Exception:
                 pass
         else:
-            lbl_status.setText("❌")
+            lbl_status.setText(WRONG)
             try:
                 CONFIG[port] = None
             except Exception:
@@ -215,13 +220,13 @@ class SettingWindow(QWidget):
         val_text = inp_port.text().strip() if inp_port is not None else ""
         if enabled and self._is_valid_port(val_text):
             if lbl_status is not None:
-                lbl_status.setText("✅")
+                lbl_status.setText(CORRECT) 
         elif enabled:
             if lbl_status is not None:
-                lbl_status.setText("❌")
+                lbl_status.setText(WRONG)
         else:
             if lbl_status is not None:
-                lbl_status.setText("❌")
+                lbl_status.setText(WRONG)
 
     # ---------- other helpers ----------
     def go_to_before_page(self):
@@ -260,13 +265,13 @@ class SettingWindow(QWidget):
                     self._parent.proxyWidget.timer.setInterval(interval)
                 except Exception:
                     pass
-                self.newnym_lbl_stat.setText(f"({interval//1000} sec)  ✅")
+                self.newnym_lbl_stat.setText(f"({interval//1000} sec)  " + CORRECT )
                 CONFIG["newnym_interval"] = interval
             except OverflowError:
                 logger.error("newnym interval overflow: %s", text)
-                self.newnym_lbl_stat.setText("❌")
+                self.newnym_lbl_stat.setText(WRONG)
         else:
-            self.newnym_lbl_stat.setText("❌")
+            self.newnym_lbl_stat.setText(WRONG)
 
     def MaxCircuitDirtiness_changed(self):
         text = self.inp_MaxCircuitDirtiness.text().strip()
@@ -277,9 +282,9 @@ class SettingWindow(QWidget):
             except Exception:
                 pass
             CONFIG["MaxCircuitDirtiness"] = val
-            self.lbl_MaxCircuitDirtiness.setText("✅")
+            self.lbl_MaxCircuitDirtiness.setText(CORRECT)
         else:
-            self.lbl_MaxCircuitDirtiness.setText("❌")
+            self.lbl_MaxCircuitDirtiness.setText(WRONG)
 
     def set_bridges(self):
         txt = self.inp_bridges.toPlainText()
@@ -304,14 +309,14 @@ class SettingWindow(QWidget):
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette()))
             CONFIG["mode"] = "light"
             try:
-                self._parent.toggle_btn.setText("🌞")
+                self._parent.toggle_btn.setText(LIGHT)
             except Exception:
                 pass
         else:
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))
             CONFIG["mode"] = "dark"
             try:
-                self._parent.toggle_btn.setText("🌛")
+                self._parent.toggle_btn.setText(DARK)
             except Exception:
                 pass
 
