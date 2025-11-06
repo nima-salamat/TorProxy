@@ -39,13 +39,15 @@ from ui_.window.custom_titlebar import CustomTitleBar
 from ui_.window.setting_window import SettingWindow
 from ui_.window.block_host_window import BlcokHostsWindow
 from ui_.window.exclude_host_window import ExcludeHostsWindow
-
+from set_proxy import Os, get_os_name
 
 class Window(QMainWindow):
     toggle_visibility_signal = Signal()
     def __init__(self):
         super().__init__()
-        self.setWindowFlag(Qt.FramelessWindowHint)
+        self.is_windows = get_os_name() == Os.Windows
+        if self.is_windows:
+            self.setWindowFlag(Qt.FramelessWindowHint)
         self.main_widget = QWidget(self)
         self.setCentralWidget(self.main_widget)
         self.stack = QStackedWidget(self)
@@ -68,9 +70,9 @@ class Window(QMainWindow):
         
         self.exclude_host_window = ExcludeHostsWindow(self)
         self.stack.addWidget(self.exclude_host_window)
-        
-        self.title_bar = CustomTitleBar(self)
-        self.main_layout.addWidget(self.title_bar)
+        if self.is_windows:
+            self.title_bar = CustomTitleBar(self)
+            self.main_layout.addWidget(self.title_bar)
         self._createMenuBar()
         self.main_layout.addWidget(self.stack)
         
@@ -126,48 +128,48 @@ class Window(QMainWindow):
         self.main_layout.addWidget(menuBar)
 
         # --- Home ---
-        home_action = QAction("    Home🏠    ", self)
+        home_action = QAction("    Home🏠    " if self.is_windows else "    Home    ", self)
         home_action.setShortcut("Ctrl+H")
         home_action.setToolTip("Ctrl+H")
         home_action.triggered.connect(self._show_home)
         menuBar.addAction(home_action)
 
         # --- Setting ---
-        setting_action = QAction("    Setting⚙️    ", self)
+        setting_action = QAction("    Setting⚙️    " if self.is_windows else "    Setting    ", self)
         setting_action.setShortcut("Ctrl+S")
         setting_action.setToolTip("Ctrl+S")
         setting_action.triggered.connect(self._show_setting)
         menuBar.addAction(setting_action)
 
         # --- Block Host ---
-        block_action = QAction("    Block Host🚫    ", self)
+        block_action = QAction("    Block Host🚫    " if self.is_windows else "    BlockHost    ", self)
         block_action.setShortcut("Ctrl+B")
         block_action.setToolTip("Ctrl+B")
         block_action.triggered.connect(self._show_block_host)
         menuBar.addAction(block_action)
         
         # --- Block Host ---
-        exclude_action = QAction("    Exclude Host🌌    ", self)
+        exclude_action = QAction("    Exclude Host🌌    " if self.is_windows else "    Exclude Host    ", self)
         exclude_action.setShortcut("Ctrl+E")
         exclude_action.setToolTip("Ctrl+E")
         exclude_action.triggered.connect(self._show_exclude_host)
         menuBar.addAction(exclude_action)
 
         # --- Help ---
-        help_action = QAction("    Help❕    ", self)
+        help_action = QAction("    Help❕    " if self.is_windows else "    Help    ", self)
         help_action.setShortcut("F1")
         help_action.setToolTip("Show shortcuts")
         help_action.triggered.connect(self._show_help)
         menuBar.addAction(help_action)
         
         # --- Quit ---
-        exit_action = QAction("    Quit🚪    ", self)
+        exit_action = QAction("    Quit🚪    " if self.is_windows else "    Quit    ", self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.setToolTip("Ctrl+Q")
         exit_action.triggered.connect(self.ask_close)
         menuBar.addAction(exit_action)
         
-        self.toggle_btn = QPushButton("🌞" if CONFIG["mode"] == "light" else "🌛", self)
+        self.toggle_btn = QPushButton(("🌞" if self.is_windows else "light") if CONFIG["mode"] == "light" else ("🌛" if self.is_windows else "dark"), self)
         self.toggle_btn.setToolTip("Toggle Light/Dark Mode")
         self.toggle_btn.setCheckable(True)
         self.toggle_btn.clicked.connect(self._toggle_theme)
@@ -175,15 +177,15 @@ class Window(QMainWindow):
     
     def _toggle_theme(self):
         app = QApplication.instance()
-        if self.toggle_btn.text() == "🌞":
-            self.toggle_btn.setText("🌛")
+        if self.toggle_btn.text() == ("🌞" if self.is_windows else "light"):
+            self.toggle_btn.setText("🌛" if self.is_windows else "dark")
             self.settingWidget.btn_dark.setChecked(True)
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
             
             CONFIG.mode= "dark"
                 
         else:
-            self.toggle_btn.setText("🌞")
+            self.toggle_btn.setText("🌞" if self.is_windows else "light")
             self.settingWidget.btn_light.setChecked(True)
             app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette())) 
             CONFIG.mode = "light"
@@ -209,6 +211,7 @@ class Window(QMainWindow):
                 "Ctrl + H → Home<br>"
                 "Ctrl + S → Setting<br>"
                 "Ctrl + B → Block Host<br>"
+                "Ctrl + E → Exlude Host<br>"
                 "Ctrl + Q → Quit"
             )
         )
