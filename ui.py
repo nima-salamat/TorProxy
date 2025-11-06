@@ -11,27 +11,17 @@ from PySide6.QtWidgets import (
 
     QSystemTrayIcon
 )
-
 from PySide6.QtGui import QIcon
 import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
-
-from set_proxy import manage_proxy
-from tor import resource_path
-
+from utils import resource_path
 import keyboard
 import threading
 import time
-
 import logging
-
-logger = logging.getLogger(__name__)
-
-
 from config import CONFIG, IS_WINDOWS
 from ui_.worker.worker import Worker
 from ui_.window.proxy_window import ProxyWindow
@@ -40,6 +30,7 @@ from ui_.window.setting_window import SettingWindow
 from ui_.window.block_host_window import BlcokHostsWindow
 from ui_.window.exclude_host_window import ExcludeHostsWindow
 
+logger = logging.getLogger(__name__)
 
 class Window(QMainWindow):
     toggle_visibility_signal = Signal()

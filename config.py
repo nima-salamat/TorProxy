@@ -1,5 +1,5 @@
 import os
-from tor import resource_path
+from utils import resource_path
 import json
 from set_proxy import get_os_name, Os
 

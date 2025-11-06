@@ -1,20 +1,12 @@
 import threading
 import subprocess
-import sys
-import platform
 import os
 from config import IS_WINDOWS
 from proxy import  ProxyHandler, ThreadedHTTPServer
-
+from utils import resource_path
 import logging
 logger = logging.getLogger(__name__)
 
-def resource_path(relative_path):
-    if getattr(sys, "_MEIPASS", False):
-        base = sys._MEIPASS
-    else:
-        base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, relative_path)
 
 tor_path = resource_path("tor_bundle/tor/tor.exe")
 lyrebird_path = resource_path("tor_bundle/tor/pluggable_transports/lyrebird.exe")
