@@ -14,6 +14,7 @@ from config import CONFIG, IS_WINDOWS, OS_NAME
 import psutil
 import os
 import signal
+import portalocker
 import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -37,48 +38,57 @@ def check_old_processes():
     
     if os.path.exists(resource_path(PID_FILE)):
         with open(resource_path(PID_FILE), "r") as f:
-            lst = f.readlines()
-            
             try:
-                app_pid = int(lst[0].strip())
-                app_process = psutil.Process(app_pid)
-                if app_process.is_running() and app_process.name() == name:
-                    reply = QMessageBox.question(
-                        None,
-                        "Same Program found",
-                        f"Do you want to terminate past process with pid={app_pid}",
-                        QMessageBox.Yes | QMessageBox.No,
-                        QMessageBox.No
-                    )
-                    if reply == QMessageBox.Yes:
-                        app_process.terminate()
-                        logger.info("YES:User decieded to end old program.")
-                        
-                        
-                    else:
-                        logger.info("NO:User decieded to end program.")
-                        logger.info("Exiting...")
-                        
-                        close_program()
-                        sys.exit()
+                portalocker.lock(f, portalocker.LOCK_EX)
+                try:
+                    lst = f.readlines()
+                    try:
+                        app_pid = int(lst[0].strip())
+                        app_process = psutil.Process(app_pid)
+                        if app_process.is_running() and app_process.name() == name:
+                            reply = QMessageBox.question(
+                                None,
+                                "Same Program found",
+                                f"Do you want to terminate past process with pid={app_pid}",
+                                QMessageBox.Yes | QMessageBox.No,
+                                QMessageBox.No
+                            )
+                            if reply == QMessageBox.Yes:
+                                app_process.terminate()
+                                logger.info("YES:User decieded to end old program.")
+                                
+                                
+                            else:
+                                logger.info("NO:User decieded to end program.")
+                                logger.info("Exiting...")
+                                return "exit"
+                                
+                                
 
-            except Exception as e: 
-                logger.error(f"Error {e}")
+                    except Exception as e: 
+                        logger.error(f"Error {e}")
+                    
+                    if len(lst) > 1:
+                        lst.pop(0)
+                        for tor_pid in lst:
+                            try: 
+                                tor_process = psutil.Process(int(tor_pid))
+                                logger.info(f"PID:{tor_pid} running")
+                                if tor_process.is_running() and tor_process.name() == "tor.exe":
+                                    tor_process.terminate()
+                                    logger.info("Old tor process terminated")
+                                    
+                            except Exception as e:
+                                logger.error(f"Failed to terminate old tor process with PID:{tor_pid} Error:{e}")
+                    else:
+                        logger.info(f"There is not any old tor process in pid file: {PID_FILE}")    
+                finally:
+                    portalocker.unlock(f)
             
-            if len(lst) > 1:
-                lst.pop(0)
-                for tor_pid in lst:
-                    try: 
-                        tor_process = psutil.Process(int(tor_pid))
-                        logger.info(f"PID:{tor_pid} running")
-                        if tor_process.is_running() and tor_process.name() == "tor.exe":
-                            tor_process.terminate()
-                            logger.info("Old tor process terminated")
-                            
-                    except Exception as e:
-                        logger.error(f"Failed to terminate old tor process with PID:{tor_pid} Error:{e}")
-            else:
-                logger.info(f"There is not any old tor process in pid file: {PID_FILE}")       
+            except (portalocker.exceptions.LockException, portalocker.exceptions.AlreadyLocked):
+                return "exit"
+                    
+
 
    
 def save_current_pid():
@@ -98,23 +108,23 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, close_program)
     
     logger.info(f" App PID={os.getpid()}")
-    check_old_processes()
-    save_current_pid()
-    app.setWindowIcon(QIcon(resource_path("assets/icon.ico")))
-    CONFIG.load()
-    if CONFIG.mode == "light":
-        app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette()))
-    else:
-        app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
-    win = Window()
-    
-    if IS_WINDOWS:
-        hwnd = int(win.winId())
-        SetWindowDisplayAffinity(hwnd, WDA_MONITOR)
-    
-    win.show()
-    
-    try:
-        app.exec()
-    finally:
-        logger.info("Application exited")
+    if check_old_processes() != "exit":
+        save_current_pid()
+        app.setWindowIcon(QIcon(resource_path("assets/icon.ico")))
+        CONFIG.load()
+        if CONFIG.mode == "light":
+            app.setStyleSheet(qdarkstyle.load_stylesheet(palette=LightPalette()))
+        else:
+            app.setStyleSheet(qdarkstyle.load_stylesheet(palette=DarkPalette()))  
+        win = Window()
+        
+        if IS_WINDOWS:
+            hwnd = int(win.winId())
+            SetWindowDisplayAffinity(hwnd, WDA_MONITOR)
+        
+        win.show()
+        
+        try:
+            app.exec()
+        finally:
+            logger.info("Application exited")
