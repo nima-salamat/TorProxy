@@ -23,6 +23,7 @@ from ui_.window.log_window import LogWindow
 from ui_.btn.pulse_button import PulseButton
 from ui_.worker.worker import Worker
 from ui_.worker.utils import Data
+from ui_.emojis import CHANGE_IDENTITY, LOGS, WHAT_IS_MY_IP, TAP_TO_CONNECT
 from config import CONFIG
 import json
 import logging
@@ -51,7 +52,7 @@ class ProxyWindow(QWidget):
         self.main_layout = QVBoxLayout(self)
         self.setLayout(self.main_layout)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.btn_status = QLabel("Tap to connect 🔌")
+        self.btn_status = QLabel(TAP_TO_CONNECT)
         self.set_btn_status_style("disconnected")
         self.main_layout.addWidget(self.btn_status)
         self.connect_btn = PulseButton("Connect")
@@ -60,11 +61,11 @@ class ProxyWindow(QWidget):
         self.lbl_percent = QLabel("0%") 
         self.main_layout.addWidget(self.lbl_percent)
         self.data.valueChanged.connect(self.dataValueChanged)
-        self.btn_change_identity = QPushButton("Change Identity 🔄")
+        self.btn_change_identity = QPushButton(CHANGE_IDENTITY)
         self.main_layout.addWidget(self.btn_change_identity)
         self.btn_change_identity.clicked.connect(self.change_identity_)
         self.logs_widget = LogWindow(self)
-        self.btn_log = QPushButton("Logs 📄")
+        self.btn_log = QPushButton(LOGS)
         self.btn_log.clicked.connect(self.show_logs)
         self.main_layout.addWidget(self.btn_log)
         self.timer = QTimer()
@@ -78,7 +79,7 @@ class ProxyWindow(QWidget):
         self.tor_ip_label = QLabel()
         layout_top_ip.addWidget(self.tor_ip_label)
 
-        self.btn_whatismyip = QPushButton("what.is.my.ip🌐")
+        self.btn_whatismyip = QPushButton(WHAT_IS_MY_IP)
         layout_ip.addWidget(self.btn_whatismyip)
         self.btn_whatismyip.clicked.connect(self.whatismyip_clicked)
         self.main_layout.addLayout(layout_ip)

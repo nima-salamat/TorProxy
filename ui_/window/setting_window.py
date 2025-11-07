@@ -29,11 +29,8 @@ from config import CONFIG
 from ui_.worker.worker import Worker
 from ui_.window.qrcode_widget import QrCodeFloatingWindow
 from config import IS_WINDOWS
+from ui_.emojis import WRONG, CORRECT, LIGHT, DARK
 
-WRONG = "❌" if IS_WINDOWS else "wrong"
-CORRECT = "✅" if IS_WINDOWS else "correct"
-LIGHT = "🌞" if IS_WINDOWS else "light"
-DARK = "🌛" if IS_WINDOWS else "dark"
 
 class SettingWindow(QWidget):
     def __init__(self, parent=None):

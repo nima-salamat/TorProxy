@@ -1,0 +1,16 @@
+from config import IS_WINDOWS
+   
+WRONG = "❌" if IS_WINDOWS else "wrong"
+CORRECT = "✅" if IS_WINDOWS else "correct"
+LIGHT = "🌞" if IS_WINDOWS else "light"
+DARK = "🌛" if IS_WINDOWS else "dark"
+CHANGE_IDENTITY = "Change Identity 🔄" if IS_WINDOWS else "Change Identity"
+LOGS = "Logs 📄" if IS_WINDOWS else "Logs"
+QUIT = "    Quit🚪    " if IS_WINDOWS else "    Quit    "
+HELP = "    Help❕    " if IS_WINDOWS else "    Help    "
+EXCLUDE_HOST = "    Exclude Host🌌    " if IS_WINDOWS else "    Exclude Host    "
+BLOCK_HOST = "    Block Host🚫    " if IS_WINDOWS else "    BlockHost    "
+SETTING = "    Setting⚙️    " if IS_WINDOWS else "    Setting    "
+HOME = "    Home🏠    " if IS_WINDOWS else "    Home    "
+WHAT_IS_MY_IP = "what.is.my.ip🌐" if IS_WINDOWS else "what.is.my.ip"
+TAP_TO_CONNECT = "Tap to connect 🔌" if IS_WINDOWS else "Tap to connect ..."
