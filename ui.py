@@ -80,7 +80,8 @@ class Window(QMainWindow):
         
         self.listener_running = True
         self.listener_thread = threading.Thread(target=self._start_key_listener, daemon=True)
-        self.listener_thread.start()
+        if IS_WINDOWS:
+            self.listener_thread.start()
         
         self.toggle_visibility_signal.connect(self._toggle_visibility)
 
@@ -109,7 +110,8 @@ class Window(QMainWindow):
         
     def closeEvent(self, event):
         self.listener_running = False
-        self.listener_thread.join()
+        if IS_WINDOWS:
+            self.listener_thread.join()
         self.proxyWidget._stop_services()
         event.accept()
 
@@ -197,7 +199,7 @@ class Window(QMainWindow):
             "Keyboard Shortcuts",
             (
                 "<b>Keyboard Shortcuts:</b><br><br>"
-                "Alt + Ctrl + P → Hide/Show Hotkey<br>"
+                "Alt + Ctrl + P → Hide/Show Hotkey<br>" if IS_WINDOWS else ""
                 "Ctrl + H → Home<br>"
                 "Ctrl + S → Setting<br>"
                 "Ctrl + B → Block Host<br>"
