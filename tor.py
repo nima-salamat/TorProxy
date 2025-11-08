@@ -42,34 +42,33 @@ class TorRunner:
         self.path_set = self.update_path()
         
     def update_path(self, base_path=None):
-        
         if base_path is None and (lst:=get_own_bundles()):
             for i in lst:
                 if check_bundle_compatibility(i):
                     base_path = i
                     break
-            else:
-                return False
+
         elif base_path is not None:
             pass
         else:
             logger.error("[*_0]There is no bundle to run tor.")
-            if lst == []:
-                for i in list_downloaded_bundles():
-                    if check_bundle_compatibility(i):
-                        base_path = os.path.join(BUNDLE_DIR, os.path.basename(i).replace(".tar.gz", ""))
-                        extract_tar_gz_file(i, base_path)
-                        break
-                        
-            else: 
+            
+        if base_path is None: 
+            for i in list_downloaded_bundles():
+                if check_bundle_compatibility(i):
+                    base_path = os.path.join(BUNDLE_DIR, os.path.basename(i).replace(".tar.gz", ""))
+                    extract_tar_gz_file(i, base_path)
+                    break
+               
+            else:                
                 return False
-                
-        
+           
         self.tor_path = os.path.normpath(os.path.join(base_path, "tor/tor.exe" if IS_WINDOWS else "tor/tor"))
         self.lyrebird_path = os.path.normpath(os.path.join(base_path, "tor/pluggable_transports/lyrebird" if IS_WINDOWS else "tor/pluggable_transports/lyrebird"))
         self.geoip_path = os.path.normpath(os.path.join(base_path, "data/geoip"))
         self.geoip6_path = os.path.normpath(os.path.join(base_path, "data/geoip6"))
         self.path_set = True
+
         return True
     
     def start(self):
@@ -122,7 +121,7 @@ class TorRunner:
             torrc_content = self.generate_torcc()
             
             logger.debug(f"torcc text:{torrc_content}")     
-            with open("temp_torrc.txt", "w") as f: f.write(torrc_content)
+            with open(resource_path("temp_torrc.txt"), "w") as f: f.write(torrc_content)
             
             
             if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
