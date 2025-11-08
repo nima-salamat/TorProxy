@@ -1,23 +1,12 @@
 import threading
 import subprocess
 import os
-from config import IS_WINDOWS
+from config import IS_WINDOWS, BUNDLE_DIR
 from proxy import  ProxyHandler, ThreadedHTTPServer
-from utils import resource_path
+from utils import resource_path, extract_tar_gz_file
+from updater import get_own_bundles, list_downloaded_bundles, check_bundle_compatibility
 import logging
 logger = logging.getLogger(__name__)
-
-
-tor_path = resource_path("tor_bundle/tor/tor.exe")
-lyrebird_path = resource_path("tor_bundle/tor/pluggable_transports/lyrebird.exe")
-geoip_path = resource_path("tor_bundle/data/geoip")
-geoip6_path = resource_path("tor_bundle/data/geoip6")
-
-logger.debug(f"File \n\tpath[tor path:{tor_path}\n"
-             f"\tlyrebird_path{lyrebird_path}\n"
-             f"\tgeoip_path{geoip_path}\n"
-             f"\tgeoip6_path{geoip6_path}\n"
-             "\n]")
 
 
 class TorRunner:
@@ -46,6 +35,43 @@ class TorRunner:
                         
         self.bridge_types = ["obfs4", "webtunnel", "meek", "snowflake", "scramblesuit", "fte"]
         
+        self.tor_path = None
+        self.lyrebird_path = None
+        self.geoip_path = None
+        self.geoip6_path = None
+        self.path_set = self.update_path()
+        
+    def update_path(self, base_path=None):
+        
+        if base_path is None and (lst:=get_own_bundles()):
+            for i in lst:
+                if check_bundle_compatibility(i):
+                    base_path = i
+                    break
+            else:
+                return False
+        elif base_path is not None:
+            pass
+        else:
+            logger.error("[*_0]There is no bundle to run tor.")
+            if lst == []:
+                for i in list_downloaded_bundles():
+                    if check_bundle_compatibility(i):
+                        base_path = os.path.join(BUNDLE_DIR, os.path.basename(i).replace(".tar.gz", ""))
+                        extract_tar_gz_file(i, base_path)
+                        break
+                        
+            else: 
+                return False
+                
+        
+        self.tor_path = os.path.normpath(os.path.join(base_path, "tor/tor.exe" if IS_WINDOWS else "tor/tor"))
+        self.lyrebird_path = os.path.normpath(os.path.join(base_path, "tor/pluggable_transports/lyrebird" if IS_WINDOWS else "tor/pluggable_transports/lyrebird"))
+        self.geoip_path = os.path.normpath(os.path.join(base_path, "data/geoip"))
+        self.geoip6_path = os.path.normpath(os.path.join(base_path, "data/geoip6"))
+        self.path_set = True
+        return True
+    
     def start(self):
         if self.proc: return
         self.thread = threading.Thread(target=self._run, daemon=True)
@@ -57,8 +83,8 @@ class TorRunner:
             f"SocksPort {self.socks_port}",
             f"ControlPort {self.contorl_port}", 
             f"DNSPort {self.dns_port}",
-            f"GeoIPFile {geoip_path}" if IS_WINDOWS else "",
-            f"GeoIPv6File {geoip6_path}" if IS_WINDOWS else "",
+            f"GeoIPFile {self.geoip_path}",
+            f"GeoIPv6File {self.geoip6_path}",
             f"Log {self.Log}",
             f"MaxCircuitDirtiness {self.MaxCircuitDirtiness}",
             f"NewCircuitPeriod {self.NewCircuitPeriod}",
@@ -81,7 +107,7 @@ class TorRunner:
                 config.extend(
                     [
                        "UseBridges 1",
-                       'ClientTransportPlugin %s exec '%(bridge_type)+ (lyrebird_path if IS_WINDOWS else "assets/lyrebird"),
+                       'ClientTransportPlugin %s exec '%(bridge_type)+ self.lyrebird_path,
                        bridges
                         
                     ]
@@ -90,40 +116,40 @@ class TorRunner:
         return "\n".join(config)  
     
     def _run(self):
-        
-        torrc_content = self.generate_torcc()
-        
-        logger.debug(f"torcc text:{torrc_content}")     
-        with open("temp_torrc.txt", "w") as f: f.write(torrc_content)
-        
-        
-        if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
-        
-        flags = subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0
-        
-        if IS_WINDOWS:
-            self.proc = subprocess.Popen([tor_path, "-f", "temp_torrc.txt"],
-                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
-        else:
-            self.proc = subprocess.Popen(["tor", "-f", "temp_torrc.txt"],
-                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
-
-        with open(resource_path("pid"), "a") as f:
-            f.write("\n"+str(self.proc.pid))
-        with open(self.log_file, 'w') as f:
-            for line in iter(self.proc.stdout.readline, b''):
-                f.write(line.decode()); f.flush()
-                if "Bootstrapped" in line.decode():
-                    lst =  line.decode().split(" ")
-                    logger.debug(f"[{line.decode()}]")
-                    self.app_window.data.value = lst[lst.index("Bootstrapped") + 1]
-                    self.app_window.logs_widget.update_log(line.decode())
-        
         try:
-            if IS_WINDOWS:
-                self.proc.wait()
-        except AttributeError:
-            pass
+            if not self.path_set:
+                raise ValueError("Required path not set")
+            torrc_content = self.generate_torcc()
+            
+            logger.debug(f"torcc text:{torrc_content}")     
+            with open("temp_torrc.txt", "w") as f: f.write(torrc_content)
+            
+            
+            if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
+            
+            flags = subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0
+            
+            self.proc = subprocess.Popen([self.tor_path, "-f", "temp_torrc.txt"],
+                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
+        
+            with open(resource_path("pid"), "a") as f:
+                f.write("\n"+str(self.proc.pid))
+            with open(self.log_file, 'w') as f:
+                for line in iter(self.proc.stdout.readline, b''):
+                    f.write(line.decode()); f.flush()
+                    if "Bootstrapped" in line.decode():
+                        lst =  line.decode().split(" ")
+                        logger.debug(f"[{line.decode()}]")
+                        self.app_window.data.value = lst[lst.index("Bootstrapped") + 1]
+                        self.app_window.logs_widget.update_log(line.decode())
+
+                if IS_WINDOWS:
+                    self.proc.wait()
+        except Exception as e:
+            logger.error(f"Error failed to run tor: {e}")
+            self.app_window.logs_widget.update_log(f"Error failed to run tor: {e}")
+            
+            
         finally:
             self.app_window._stop_services()
 
