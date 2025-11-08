@@ -8,3 +8,4 @@ pyzbar
 keyboard
 psutil
 portalocker
+bs4
