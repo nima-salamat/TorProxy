@@ -6,3 +6,4 @@ blocked_hosts.json
 temp_torrc.txt
 pid
 exclude_hosts.json
+bundle/tor-expert-bundle-windows-x86_64-13.5.23
