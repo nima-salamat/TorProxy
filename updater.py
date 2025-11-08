@@ -90,8 +90,18 @@ def get_version_by_bundle(filename, with_slash=False):
     return filename.rsplit("-", 1)[1].rsplit(".",2)[0] + ("/" if with_slash else "")
 
 def check_bundle_compatability(filename):
-    if (ARCHITECTURE == 64 and "x86_64" in filename.rsplit("\\",1)[-1]) or (ARCHITECTURE == 32 and "i868" in filename.rsplit("\\",1)[-1]):
+    name = os.path.splitext(os.path.basename(filename))[0]
+
+    if ((ARCHITECTURE == 64 and "x86_64" in name) or (ARCHITECTURE == 32 and "i868" in name)) and OS_NAME.lower() in name and name.startswith("tor-expert-bundle-"):
         return True
+    return False
+
+def get_own_bundles():
+    res = []
+    for i in glob.glob(resource_path(BUNDLE_DIR)+"tor-expert-bundle*"):
+        if os.path.isdir(i):
+            res.append(i)
+    return res    
 
 
 # filename = list_downloaded_bundles()[0]
