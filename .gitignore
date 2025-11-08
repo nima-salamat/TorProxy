@@ -7,3 +7,4 @@ temp_torrc.txt
 pid
 exclude_hosts.json
 bundles/tor-expert-bundle-windows-x86_64-13.5.23
+bundles/tor-expert-bundle-linux-x86_64-15.0
