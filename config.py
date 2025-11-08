@@ -2,12 +2,16 @@ import os
 from utils import resource_path
 import json
 from set_proxy import get_os_name, Os
+import platform
 
 IS_WINDOWS = get_os_name() == Os.Windows
 IS_LINUX = get_os_name() == Os.Linux
 IS_OTHER = IS_WINDOWS or IS_WINDOWS
 OS_NAME = get_os_name()
+ARCHITECTURE = int(platform.architecture()[0][0:2])
+BUNDLE_DIR = "bundles/"
 
+TOR_BUNDLE_BASE_URL = "https://dist.torproject.org/torbrowser/"
 class Config:
     file_config = "config.json"
     default_data = {"bridges": "", "bridge":False, "mode": "dark", "tor_port": None, "tor_port_checked": None,
