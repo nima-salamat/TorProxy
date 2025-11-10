@@ -29,6 +29,7 @@ from ui_.window.custom_titlebar import CustomTitleBar
 from ui_.window.setting_window import SettingWindow
 from ui_.window.block_host_window import BlcokHostsWindow
 from ui_.window.exclude_host_window import ExcludeHostsWindow
+from ui_.window.updater_window import UpdaterWindow
 from ui_.emojis import DARK, LIGHT, QUIT, HOME, EXCLUDE_HOST, BLOCK_HOST, SETTING, HELP
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,10 @@ class Window(QMainWindow):
         
         self.exclude_host_window = ExcludeHostsWindow(self)
         self.stack.addWidget(self.exclude_host_window)
+        
+        self.updater_window = UpdaterWindow(self)
+        self.stack.addWidget(self.updater_window)
+        
         if IS_WINDOWS:
             self.title_bar = CustomTitleBar(self)
             self.main_layout.addWidget(self.title_bar)
@@ -140,12 +145,19 @@ class Window(QMainWindow):
         block_action.triggered.connect(self._show_block_host)
         menuBar.addAction(block_action)
         
-        # --- Block Host ---
+        # --- Exclude Host ---
         exclude_action = QAction(EXCLUDE_HOST, self)
         exclude_action.setShortcut("Ctrl+E")
         exclude_action.setToolTip("Ctrl+E")
         exclude_action.triggered.connect(self._show_exclude_host)
         menuBar.addAction(exclude_action)
+        
+        # --- Updater ---
+        updater_action = QAction("Updater", self)
+        updater_action.setShortcut("Ctrl+U")
+        updater_action.setToolTip("Ctrl+U")
+        updater_action.triggered.connect(self._show_updater)
+        menuBar.addAction(updater_action)
 
         # --- Help ---
         help_action = QAction(HELP, self)
@@ -219,6 +231,9 @@ class Window(QMainWindow):
     
     def _show_exclude_host(self):
         self.stack.setCurrentIndex(3)
+        
+    def _show_updater(self):
+        self.stack.setCurrentIndex(4)
         
     def _notify(self, title, message):
         self.tray_icon.showMessage(title, message, QSystemTrayIcon.Information, 2000)
