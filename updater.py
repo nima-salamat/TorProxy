@@ -18,31 +18,37 @@ def create_bundle_dir():
     
 def get_tor_versions(url=TOR_BUNDLE_BASE_URL):
     links = []
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, "html.parser")    
-    for link in soup.find_all("a"):
-        if link.text.endswith("/"):
-            links.append(link.text)
+    try:
+        html = requests.get(url).text
+        soup = BeautifulSoup(html, "html.parser")    
+        for link in soup.find_all("a"):
+            if link.text.endswith("/"):
+                links.append(link.text)
+    except Exception as e:
+        logger.error(f"error in get tor version: {e}")
     return links
 
 
 def get_bundle_links(version, base_url=TOR_BUNDLE_BASE_URL):
     links = []
-    version = version if version.endswith("/") else version + "/"
-    url = base_url + version
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, "html.parser")    
-    logger.debug(f"tor-expert-bundle-{OS_NAME.lower()}")
-    for link in soup.find_all("a"):
-        if link.text.startswith(f"tor-expert-bundle-{OS_NAME.lower()}") and link.text.endswith(".gz"):
-            
-            if "i686" in link.text and ARCHITECTURE == 32:
-                links.append(link.text)
+    try:
+        version = version if version.endswith("/") else version + "/"
+        url = base_url + version
+        html = requests.get(url).text
+        soup = BeautifulSoup(html, "html.parser")    
+        logger.debug(f"tor-expert-bundle-{OS_NAME.lower()}")
+        for link in soup.find_all("a"):
+            if link.text.startswith(f"tor-expert-bundle-{OS_NAME.lower()}") and link.text.endswith(".gz"):
                 
-            elif "x86_64" in link.text and ARCHITECTURE == 64:
-                links.append(link.text)
+                if "i686" in link.text and ARCHITECTURE == 32:
+                    links.append(link.text)
+                    
+                elif "x86_64" in link.text and ARCHITECTURE == 64:
+                    links.append(link.text)
+    except Exception as e:
+        logger.error(f"error in get bundle links: {e}")
+        
     return links
-
 
 
 def sha256_file(filename):
@@ -73,6 +79,8 @@ def check_hash(filename, version, base_url=TOR_BUNDLE_BASE_URL):
     
 def download_file(filename, version, base_url=TOR_BUNDLE_BASE_URL):
     create_bundle_dir()
+    version = version if version.endswith("/") else version + "/"
+    
     if os.path.exists(bundle_path(filename)):
         return 
     url = base_url + version + filename
@@ -102,6 +110,18 @@ def get_own_bundles():
         if os.path.isdir(i):
             res.append(i)
     return res    
+
+def delete_bundle(name):
+    name = name.replace(".tar.gz", "")
+    try:
+        os.remove(os.path.join(BUNDLE_DIR, name))
+    except:
+        pass
+    try:
+        os.remove(os.path.join(BUNDLE_DIR, name+".tar.gz"))
+    except: 
+        pass
+
 
 
 # filename = list_downloaded_bundles()[0]
