@@ -121,14 +121,15 @@ class TorRunner:
             torrc_content = self.generate_torcc()
             
             logger.debug(f"torcc text:{torrc_content}")     
-            with open(resource_path("temp_torrc.txt"), "w") as f: f.write(torrc_content)
+            torrc_file = resource_path("temp_torrc.txt")
+            with open(torrc_file, "w") as f: f.write(torrc_content)
             
             
             if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
             
             flags = subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0
             
-            self.proc = subprocess.Popen([self.tor_path, "-f", "temp_torrc.txt"],
+            self.proc = subprocess.Popen([self.tor_path, "-f", torrc_file],
                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
         
             with open(resource_path("pid"), "a") as f:
