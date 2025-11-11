@@ -7,6 +7,9 @@ from config import BUNDLE_DIR
 from utils import extract_tar_gz_file, resource_path
 import json
 import os
+import logging
+
+logger = logging.getLogger()
 
 class UpdaterWindow(QWidget):
     def __init__(self, parent=None):
@@ -24,6 +27,9 @@ class UpdaterWindow(QWidget):
         self.updates_list = QListWidget()
         self.updates_list.itemClicked.connect(self.selected_version)
         main_layout.addWidget(self.updates_list)
+        
+        self.lbl_status = QLabel()
+        main_layout.addWidget(self.lbl_status)
        
         self.thread_pool = QThreadPool()
         
@@ -90,16 +96,18 @@ class UpdaterWindow(QWidget):
     
     def download_bundle(self, bundle, version):
         try:
-            print("download started . . . . ")
+            logger.info(f"Downloading {bundle}")
+            self.lbl_status.setText(f"Downloading {bundle}")
             
             download_file(bundle, version)
             base_path = os.path.join(BUNDLE_DIR, os.path.basename(bundle).replace(".tar.gz", ""))
             extract_tar_gz_file(resource_path(os.path.join(BUNDLE_DIR, bundle)), base_path)
             
         except Exception as e:
-            print("download ended with error", e)
-            
+            self.lbl_status.setText(f"Download  {bundle} ended with error")
             delete_bundle(bundle)
-        print("download ended . . . . ")
+            logger.info(f"Download {bundle} ended with error and removed. error {e}")
+            
+        self.lbl_status.setText(f"Download {bundle} ended.")
         self.updates_list.setEnabled(True)
         
