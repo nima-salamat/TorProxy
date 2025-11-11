@@ -234,7 +234,9 @@ class ProxyWindow(QWidget):
                 raise
 
             try:
+                self.tor.update_path(CONFIG["tor_path"])
                 self.tor.start()
+                
             except Exception as e:
                 logger.exception("tor.start() failed: %s", e)
                 # if tor fails, try to stop proxy to avoid half-start

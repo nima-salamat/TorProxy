@@ -19,6 +19,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+
 logger.info(f"os type: {OS_NAME}")
 if IS_WINDOWS:
     import ctypes

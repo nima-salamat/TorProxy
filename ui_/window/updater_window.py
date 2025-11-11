@@ -1,5 +1,5 @@
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QLabel
 from PySide6.QtCore import QThreadPool
 from ui_.worker.worker import Worker
 from updater import get_tor_versions, get_bundle_links, get_version_by_bundle, download_file, list_downloaded_bundles, delete_bundle
@@ -24,8 +24,6 @@ class UpdaterWindow(QWidget):
         self.updates_list = QListWidget()
         self.updates_list.itemClicked.connect(self.selected_version)
         main_layout.addWidget(self.updates_list)
-        
-        
        
         self.thread_pool = QThreadPool()
         
@@ -104,10 +102,4 @@ class UpdaterWindow(QWidget):
             delete_bundle(bundle)
         print("download ended . . . . ")
         self.updates_list.setEnabled(True)
-        
-        
-
-    
-    
-    
         

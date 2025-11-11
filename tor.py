@@ -42,6 +42,8 @@ class TorRunner:
         self.path_set = self.update_path()
         
     def update_path(self, base_path=None):
+        if base_path and not os.path.exists(base_path):
+            base_path = None
         if base_path is None and (lst:=get_own_bundles()):
             for i in lst:
                 if check_bundle_compatibility(i):
@@ -128,7 +130,8 @@ class TorRunner:
             if self.proc: self.proc.terminate(); self.proc.wait(); self.proc=None
             
             flags = subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0
-            
+            logger.info(f"Tor path: {self.tor_path}")
+            logger.info(f"torrc file path: {torrc_file}")
             self.proc = subprocess.Popen([self.tor_path, "-f", torrc_file],
                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=flags)
         
