@@ -5,6 +5,7 @@ import io
 import hashlib
 import os
 import glob
+import shutil
 from utils import resource_path, extract_tar_gz_file
 import logging
 
@@ -113,14 +114,16 @@ def get_own_bundles():
 
 def delete_bundle(name):
     name = name.replace(".tar.gz", "")
+    
     try:
-        os.remove(os.path.join(BUNDLE_DIR, name))
-    except:
-        pass
+        shutil.rmtree(os.path.join(BUNDLE_DIR, name), ignore_errors=True)
+    except Exception as e:
+        logger.error(f"rmdir bundle failed: {e}")
     try:
         os.remove(os.path.join(BUNDLE_DIR, name+".tar.gz"))
-    except: 
-        pass
+    except Exception as e: 
+        logger.error(f"remove bundle failed: {e}")
+
 
 
 
