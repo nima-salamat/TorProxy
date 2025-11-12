@@ -1,12 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
-from config import TOR_BUNDLE_BASE_URL, OS_NAME, ARCHITECTURE, BUNDLE_DIR
+from config import TOR_BUNDLE_BASE_URL, OS_NAME, ARCHITECTURE, BUNDLE_DIR, CHECKSUM_FILE
 import io
 import hashlib
 import os
 import glob
 import shutil
-from utils import resource_path, extract_tar_gz_file
+from utils import resource_path
+from urllib.parse import urljoin
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,8 @@ def get_tor_versions(url=TOR_BUNDLE_BASE_URL):
         for link in soup.find_all("a"):
             if link.text.endswith("/"):
                 links.append(link.text)
+                #
+                get_checksum(link.text)
     except Exception as e:
         logger.error(f"error in get tor version: {e}")
     return links
@@ -33,7 +36,7 @@ def get_tor_versions(url=TOR_BUNDLE_BASE_URL):
 def get_bundle_links(version, base_url=TOR_BUNDLE_BASE_URL):
     links = []
     try:
-        version = version if version.endswith("/") else version + "/"
+        version = version.replace("/", "")
         url = base_url + version
         html = requests.get(url).text
         soup = BeautifulSoup(html, "html.parser")    
@@ -61,23 +64,54 @@ def sha256_file(filename):
             h.update(chunk)
     return h.hexdigest()
 
-def check_hash(filename, version, base_url=TOR_BUNDLE_BASE_URL):
+def save_checksum(file, version):
+    file.seek(0)
+    text = file.read()
+    with open(resource_path(os.path.join(BUNDLE_DIR,f"{version}-{CHECKSUM_FILE}")), "w", encoding="utf-8") as f:
+        f.write(text.decode())
+
+def get_checksum(version, base_url=TOR_BUNDLE_BASE_URL,):
     file = io.BytesIO()
-    url = base_url + version + "sha256sums.txt"
+    version = version.replace("/", "")
+    
+    url = urljoin(base_url, f"{version}/{CHECKSUM_FILE}")
     with requests.get(url, stream=True) as r:
             for chunk in r.iter_content(chunk_size=8192):
                 file.write(chunk)
-    file_hash = sha256_file(bundle_path(filename))
-    file.seek(0)
-    text = file.read().decode()
-    for i in text.splitlines():
-        hash, name = i.strip().split(None, 1)
-        if name.strip() == filename:
-            if hash.strip() == file_hash:
+                    
+    save_checksum(file, version)
+    
+def check_hash(filename, base_url=TOR_BUNDLE_BASE_URL, go_online=False):
+    try:
+        version = get_version_by_bundle(filename)
+        if not os.path.exists(resource_path(os.path.join(BUNDLE_DIR,f"{version}-{CHECKSUM_FILE}"))):
+            if go_online:
+                
+                file = io.BytesIO()
+                url = urljoin(base_url, f"{version}/{CHECKSUM_FILE}")
+                with requests.get(url, stream=True) as r:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            file.write(chunk)
+                file_hash = sha256_file(bundle_path(filename))
+                file.seek(0)
+                text = file.read().decode()
+                save_checksum(file, version)
+            else:
                 return True
+            
+        else:
+            with open(resource_path(os.path.join(BUNDLE_DIR,f"{version}-{CHECKSUM_FILE}")), "r") as f:
+                
+                text = f.read()
+        for i in text.splitlines():
+            hash, name = i.strip().split(None, 1)
+            if name.strip() == filename:
+                if hash.strip() == file_hash:
+                    return True
+    except Exception as e:
+        logger.error(f"check hash: {e}")
     return False
 
-    
 def download_file(filename, version, base_url=TOR_BUNDLE_BASE_URL):
     create_bundle_dir()
     version = version if version.endswith("/") else version + "/"
@@ -96,7 +130,7 @@ def list_downloaded_bundles():
     return glob.glob(resource_path(BUNDLE_DIR)+"*.gz")
 
 def get_version_by_bundle(filename, with_slash=False):
-    return filename.rsplit("-", 1)[1].rsplit(".",2)[0] + ("/" if with_slash else "")
+    return filename.replace(".tar.gz", "").rsplit("-", 1)[-1]
 
 def check_bundle_compatibility(filename):
     name = os.path.splitext(os.path.basename(filename))[0]
@@ -123,21 +157,4 @@ def delete_bundle(name):
         os.remove(os.path.join(BUNDLE_DIR, name+".tar.gz"))
     except Exception as e: 
         logger.error(f"remove bundle failed: {e}")
-
-
-
-
-# filename = list_downloaded_bundles()[0]
-# dst = os.path.join(BUNDLE_DIR,filename.rsplit("\\",1)[-1].split("tar.gz")[0])
-# print(filename, dst)
-# extract_tar_gz_file(filename, dst)
-
-# print(get_version_by_bundle(list_downloaded_bundles()[0], with_slash=True))
-# versions = get_tor_versions()
-# print("v:", versions)
-# bundles = get_bundle_links(versions[0])
-# print("b:", bundles)
-
-# download_file(bundles[0], versions[0])
-# print("check:", check_hash(bundles[0], versions[0]))
 
