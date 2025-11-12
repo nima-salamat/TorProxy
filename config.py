@@ -10,7 +10,7 @@ IS_OTHER = IS_WINDOWS or IS_WINDOWS
 OS_NAME = get_os_name()
 ARCHITECTURE = int(platform.architecture()[0][0:2])
 BUNDLE_DIR = "bundles/"
-
+CHECKSUM_FILE = "sha256sums.txt"
 TOR_BUNDLE_BASE_URL = "https://dist.torproject.org/torbrowser/"
 class Config:
     file_config = "config.json"
