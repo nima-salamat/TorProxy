@@ -8,15 +8,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QPushButton,
     QMessageBox,
-
     QSystemTrayIcon
 )
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QAction
 import qdarkstyle
 from qdarkstyle.dark.palette import DarkPalette
 from qdarkstyle.light.palette import LightPalette
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QAction
 from utils import resource_path
 import keyboard
 import threading

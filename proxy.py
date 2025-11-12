@@ -6,6 +6,7 @@ import socket
 from urllib.parse import urlsplit
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
+import queue
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,20 @@ EXCLUDE_FILE = 'exclude_hosts.json'
 blocked_hosts = []
 exclude_hosts = []
 
+
+
+
+queue_bytes = queue.Queue()
+import threading
+running = True
+from config import CONFIG
+def worker_data_usage_tracker(stop_event):
+    while not stop_event.is_set():
+        if not queue_bytes.empty():
+            byte = queue_bytes.get()
+            data_usage = CONFIG["data_usage"]
+            data_usage = 0 if data_usage is None else data_usage+byte
+            CONFIG["data_usage"] = data_usage
 
 def get_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -191,6 +206,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 r, _, _ = select.select(socks_list, [], [])
                 for s in r:
                     data = s.recv(4096)
+                    queue_bytes.put(len(data))
                     if not data:
                         return
                     (dst if s is src else src).sendall(data)

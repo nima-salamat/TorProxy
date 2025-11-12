@@ -2,7 +2,7 @@ import threading
 import subprocess
 import os
 from config import IS_WINDOWS, BUNDLE_DIR
-from proxy import  ProxyHandler, ThreadedHTTPServer
+from proxy import  ProxyHandler, ThreadedHTTPServer, worker_data_usage_tracker
 from utils import resource_path, extract_tar_gz_file
 from updater import get_own_bundles, list_downloaded_bundles, check_bundle_compatibility, check_hash
 import logging
@@ -185,16 +185,35 @@ class TorRunner:
 class Runner:
     def __init__(self, port, tor_socks_port, app_window):
         self.app_window = app_window
-        self.port=port; self.server=None; self.thread=None; self.tor_socks_port = tor_socks_port
+        self.port = port
+        self.tor_socks_port = tor_socks_port
+        self.server = None
+        self.thread = None
+        self.data_usage_tracker = None
+        self.stop_data_usage_tracker_event = None
+
     def start(self):
         if self.server: return
         ProxyHandler.app_window = self.app_window
         self.server = ThreadedHTTPServer(("0.0.0.0", self.port), ProxyHandler, self.tor_socks_port)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
+        self.stop_data_usage_tracker_event = threading.Event()
+        self.data_usage_tracker = threading.Thread(target=worker_data_usage_tracker, args=(self.stop_data_usage_tracker_event,))
+        self.data_usage_tracker.start()
+        
         logger.debug("Thread proxy server started")
     def stop(self):
         if not self.server: return
+        if self.stop_data_usage_tracker_event:
+            self.stop_data_usage_tracker_event.set()
+        
         self.server.shutdown(); self.server.server_close(); self.thread.join()
+        if self.data_usage_tracker:
+            self.data_usage_tracker.join()
+            
         logger.debug("Proxy server closed")
-        self.server=None; self.thread=None
+        self.server=None
+        self.thread=None
+        self.data_usage_tracker = None
+        self.stop_data_usage_tracker_event = None

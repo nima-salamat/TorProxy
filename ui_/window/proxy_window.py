@@ -58,8 +58,14 @@ class ProxyWindow(QWidget):
         self.connect_btn = PulseButton("Connect")
         self.connect_btn.clicked.connect(self._toggle)
         self.main_layout.addWidget(self.connect_btn)
+
+        lyt_info = QHBoxLayout()
+        self.main_layout.addLayout(lyt_info)
         self.lbl_percent = QLabel("0%") 
-        self.main_layout.addWidget(self.lbl_percent)
+        lyt_info.addWidget(self.lbl_percent)
+        self.lbl_data_usage = QLabel(f"Data usage: {CONFIG["data_usage"]/1024**2:.2f} Mb")
+        lyt_info.addWidget(self.lbl_data_usage)
+        
         self.data.valueChanged.connect(self.dataValueChanged)
         self.btn_change_identity = QPushButton(CHANGE_IDENTITY)
         self.main_layout.addWidget(self.btn_change_identity)
@@ -84,6 +90,16 @@ class ProxyWindow(QWidget):
         self.btn_whatismyip.clicked.connect(self.whatismyip_clicked)
         self.main_layout.addLayout(layout_ip)
         self.thread_pool = QThreadPool()
+        
+        
+        
+        self.timer_data_usage = QTimer()
+        self.timer_data_usage.setInterval(1000)
+        self.timer_data_usage.timeout.connect(self.change_data_usage)
+
+    def change_data_usage(self):
+        self.lbl_data_usage.setText(f"Data usage: {CONFIG["data_usage"]/1024**2:.2f} Mb")
+
     
     def whatismyip_clicked(self):
         self.worker = Worker(lambda: what_is_my_ip())
@@ -145,6 +161,7 @@ class ProxyWindow(QWidget):
             manage_proxy("127.0.0.1", self.proxy.port, "set")
             self.btn_status.setText("connected")
             self.set_btn_status_style("connected")
+            self.timer_data_usage.start()
             
         self.lbl_percent.setText(str(v)+"")
         
@@ -374,3 +391,5 @@ class ProxyWindow(QWidget):
         self.connect_btn.connected = False
         self.connect_btn.updateStyle()
         self.connect_btn.setEnabled(True)
+        self.timer_data_usage.stop()
+        
