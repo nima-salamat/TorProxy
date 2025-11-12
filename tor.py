@@ -4,7 +4,7 @@ import os
 from config import IS_WINDOWS, BUNDLE_DIR
 from proxy import  ProxyHandler, ThreadedHTTPServer
 from utils import resource_path, extract_tar_gz_file
-from updater import get_own_bundles, list_downloaded_bundles, check_bundle_compatibility
+from updater import get_own_bundles, list_downloaded_bundles, check_bundle_compatibility, check_hash
 import logging
 logger = logging.getLogger(__name__)
 
@@ -59,11 +59,16 @@ class TorRunner:
             for i in list_downloaded_bundles():
                 if check_bundle_compatibility(i):
                     base_path = os.path.join(BUNDLE_DIR, os.path.basename(i).replace(".tar.gz", ""))
-                    extract_tar_gz_file(i, base_path)
+                    
                     break
-               
             else:                
                 return False
+
+            if not check_hash(filename=base_path, go_online=False):
+                return False
+            
+            extract_tar_gz_file(i, base_path)
+               
            
         self.tor_path = os.path.normpath(os.path.join(base_path, "tor/tor.exe" if IS_WINDOWS else "tor/tor"))
         self.lyrebird_path = os.path.normpath(os.path.join(base_path, "tor/pluggable_transports/lyrebird" if IS_WINDOWS else "tor/pluggable_transports/lyrebird"))
@@ -72,7 +77,7 @@ class TorRunner:
         self.path_set = True
 
         return True
-    
+            
     def start(self):
         if self.proc: return
         self.thread = threading.Thread(target=self._run, daemon=True)
