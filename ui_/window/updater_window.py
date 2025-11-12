@@ -1,8 +1,10 @@
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QLabel
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QPushButton, QMessageBox, QLabel, QHBoxLayout
 from PySide6.QtCore import QThreadPool
 from ui_.worker.worker import Worker
 from updater import get_tor_versions, get_bundle_links, get_version_by_bundle, download_file, list_downloaded_bundles, delete_bundle
+from updater import get_own_bundles, check_bundle_compatibility, delete_bundle
+from config import CONFIG
 from config import BUNDLE_DIR
 from utils import extract_tar_gz_file, resource_path
 import json
@@ -16,22 +18,80 @@ class UpdaterWindow(QWidget):
         super().__init__(parent)
         self.parent_ = parent
         
-        main_layout = QVBoxLayout()
+        main_layout = QHBoxLayout()
         self.setLayout(main_layout)
+        
+        left_layout = QVBoxLayout()
+        main_layout.addLayout(left_layout)
         
         
         self.btn_get_versions = QPushButton("get versions")
         self.btn_get_versions.clicked.connect(self.get_available_versions)
-        main_layout.addWidget(self.btn_get_versions)
+        left_layout.addWidget(self.btn_get_versions)
         
         self.updates_list = QListWidget()
         self.updates_list.itemClicked.connect(self.selected_version)
-        main_layout.addWidget(self.updates_list)
+        left_layout.addWidget(self.updates_list)
         
         self.lbl_status = QLabel()
-        main_layout.addWidget(self.lbl_status)
+        left_layout.addWidget(self.lbl_status)
        
         self.thread_pool = QThreadPool()
+        
+    
+        right_layout = QVBoxLayout()
+        main_layout.addLayout(right_layout)
+        
+        self.btn_refresh_version = QPushButton("refresh")
+        self.btn_refresh_version.clicked.connect(self.refresh_version)
+        right_layout.addWidget(self.btn_refresh_version)
+
+        self.list_tor_versions = QListWidget()
+        right_layout.addWidget(self.list_tor_versions)
+        
+        self.btn_set_default_version = QPushButton("set default version")
+        self.btn_set_default_version.clicked.connect(self.set_default_version)
+        right_layout.addWidget(self.btn_set_default_version)
+        
+        self.btn_delete_version = QPushButton("delete version")
+        self.btn_delete_version.clicked.connect(self.delete_version)
+        right_layout.addWidget(self.btn_delete_version)
+    
+    def refresh_version(self):
+        self.list_tor_versions.clear()
+        print(get_own_bundles())
+        for i in get_own_bundles():
+            if check_bundle_compatibility(i):
+                self.list_tor_versions.addItem(i)
+                
+    def set_default_version(self):
+        if items:=self.list_tor_versions.selectedItems():
+            item = items[0]
+            reply = QMessageBox.question(self, 
+                                        "Download", 
+                                        f"Do you want set default tor?\n{item.text()}",
+                                        QMessageBox.Yes| QMessageBox.No, 
+                                        QMessageBox.No)
+            if reply == QMessageBox.No:
+                return
+            
+            CONFIG["tor_path"] = item.text()
+            self.refresh_version()            
+            
+
+            
+    def delete_version(self):
+        if items:=self.list_tor_versions.selectedItems():
+            item = items[0]
+            reply = QMessageBox.question(self, 
+                                        "Download", 
+                                        f"Do you want to download?\n{item.text()}",
+                                        QMessageBox.Yes| QMessageBox.No, 
+                                        QMessageBox.No)
+            if reply == QMessageBox.No:
+                return
+        delete_bundle(item.text())
+        self.refresh_version()            
         
     def get_available_versions(self):
         self.btn_get_versions.setDisabled(True)
@@ -111,3 +171,4 @@ class UpdaterWindow(QWidget):
         self.lbl_status.setText(f"Download {bundle} ended.")
         self.updates_list.setEnabled(True)
         
+

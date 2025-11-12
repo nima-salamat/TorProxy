@@ -32,7 +32,6 @@ from ui_.worker.worker import Worker
 from ui_.window.qrcode_widget import QrCodeFloatingWindow
 from config import IS_WINDOWS
 from ui_.emojis import WRONG, CORRECT, LIGHT, DARK
-from updater import get_own_bundles, check_bundle_compatibility, delete_bundle
 
 class SettingWindow(QWidget):
     def __init__(self, parent=None):
@@ -66,7 +65,6 @@ class SettingWindow(QWidget):
 
         self.initialize_first_page()
         self.initialize_second_page()
-        self.initialize_third_page()
 
     def initialize_first_page(self):
         mode_layout = QHBoxLayout(self)
@@ -178,64 +176,7 @@ class SettingWindow(QWidget):
 
             self.second_page_layout.addLayout(lyt)
         
-    def initialize_third_page(self):
-        
-        self.third_page = QWidget()
-        self.page_setting.addWidget(self.third_page)
-
-        self.third_page_layout = QVBoxLayout()
-        self.third_page.setLayout(self.third_page_layout)
-        
-        self.btn_refresh_version = QPushButton("refresh")
-        self.btn_refresh_version.clicked.connect(self.refresh_version)
-        self.third_page_layout.addWidget(self.btn_refresh_version)
-
-        self.list_tor_versions = QListWidget()
-        self.third_page_layout.addWidget(self.list_tor_versions)
-        
-        self.btn_set_default_version = QPushButton("set default version")
-        self.btn_set_default_version.clicked.connect(self.set_default_version)
-        self.third_page_layout.addWidget(self.btn_set_default_version)
-        
-        self.btn_delete_version = QPushButton("delete version")
-        self.btn_delete_version.clicked.connect(self.delete_version)
-        self.third_page_layout.addWidget(self.btn_delete_version)
-    
-    def refresh_version(self):
-        self.list_tor_versions.clear()
-        print(get_own_bundles())
-        for i in get_own_bundles():
-            if check_bundle_compatibility(i):
-                self.list_tor_versions.addItem(i)
-                
-    def set_default_version(self):
-        if items:=self.list_tor_versions.selectedItems():
-            item = items[0]
-            reply = QMessageBox.question(self, 
-                                        "Download", 
-                                        f"Do you want set default tor?\n{item.text()}",
-                                        QMessageBox.Yes| QMessageBox.No, 
-                                        QMessageBox.No)
-            if reply == QMessageBox.No:
-                return
-            
-            CONFIG["tor_path"] = item.text()
-            self.refresh_version()            
-            
-
-            
-    def delete_version(self):
-        if items:=self.list_tor_versions.selectedItems():
-            item = items[0]
-            reply = QMessageBox.question(self, 
-                                        "Download", 
-                                        f"Do you want to download?\n{item.text()}",
-                                        QMessageBox.Yes| QMessageBox.No, 
-                                        QMessageBox.No)
-            if reply == QMessageBox.No:
-                return
-        delete_bundle(item.text())
-        self.refresh_version()            
+   
     def inp_port_changed(self, inp_port, lbl_status, port, text=None):
         if text is None:
             value = inp_port.text().strip()
