@@ -63,7 +63,7 @@ class ProxyWindow(QWidget):
         self.main_layout.addLayout(lyt_info)
         self.lbl_percent = QLabel("0%") 
         lyt_info.addWidget(self.lbl_percent)
-        self.lbl_data_usage = QLabel(f"Data usage: {CONFIG["data_usage"]/1024**2:.2f} Mb")
+        self.lbl_data_usage = QLabel(f"Data usage: {CONFIG['data_usage']/1024**2:.2f} Mb")
         lyt_info.addWidget(self.lbl_data_usage)
         
         self.data.valueChanged.connect(self.dataValueChanged)
@@ -98,7 +98,7 @@ class ProxyWindow(QWidget):
         self.timer_data_usage.timeout.connect(self.change_data_usage)
 
     def change_data_usage(self):
-        self.lbl_data_usage.setText(f"Data usage: {CONFIG["data_usage"]/1024**2:.2f} Mb")
+        self.lbl_data_usage.setText(f"Data usage: {CONFIG['data_usage']/1024**2:.2f} Mb")
 
     
     def whatismyip_clicked(self):
