@@ -74,7 +74,7 @@ class Window(QMainWindow):
         
         tray_menu = QMenu()
         quit_action = QAction("Quit", self)
-        quit_action.triggered.connect(self.close)
+        quit_action.triggered.connect(lambda: (self.show(), self.close()))
         tray_menu.addAction(quit_action)
 
         self.tray_icon.setContextMenu(tray_menu)
