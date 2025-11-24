@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 import queue
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 # ====== Config & Globals ======
@@ -16,8 +17,6 @@ EXCLUDE_FILE = 'exclude_hosts.json'
 
 blocked_hosts = []
 exclude_hosts = []
-
-
 
 
 queue_bytes = queue.Queue()
@@ -31,6 +30,7 @@ def worker_data_usage_tracker(stop_event):
             data_usage = CONFIG["data_usage"]
             data_usage = 0 if data_usage is None else data_usage+byte
             CONFIG["data_usage"] = data_usage
+        time.sleep(0.05)
 
 def get_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
