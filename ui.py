@@ -208,8 +208,8 @@ class Window(QMainWindow):
             self,
             "Keyboard Shortcuts",
             (
-                "<b>Keyboard Shortcuts:</b><br><br>"
-                "Alt + Ctrl + P → Hide/Show Hotkey<br>" if IS_WINDOWS else ""
+                "<b>Keyboard Shortcuts:</b><br><br>"+
+                ("Alt + Ctrl + P → Hide/Show Hotkey<br>" if IS_WINDOWS else "")+
                 "Ctrl + H → Home<br>"
                 "Ctrl + S → Setting<br>"
                 "Ctrl + B → Block Host<br>"
