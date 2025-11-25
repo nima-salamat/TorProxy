@@ -281,7 +281,7 @@ class ProxyWindow(QWidget):
         """
         Pure worker: no GUI ops here.
         Returns (ok: bool, ports: dict, messages: list[str])
-        Clear and explicit failures list is used so we know دقیقاً چرا fail شده.
+        Clear and explicit failures list is used.
         """
         messages = []
         failures = []

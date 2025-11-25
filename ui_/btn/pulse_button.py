@@ -1,97 +1,174 @@
-from PySide6.QtWidgets import (
-    QPushButton,
-
-)
-
-from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property
-from PySide6.QtGui import QPainter, QColor, QBrush
+from PySide6.QtWidgets import QPushButton
+from PySide6.QtCore import Qt, QEasingCurve, QPropertyAnimation, Property, QTimer
+from PySide6.QtGui import QPainter, QColor, QBrush, QPen
 
 import logging
-
 logger = logging.getLogger(__name__)
-
 
 class PulseButton(QPushButton):
     def __init__(self, text):
         super().__init__(text)
         self.setFixedSize(250, 250)
         self.connected = False
-        self._pulse_radius = 0
-        self._pulse_color = "#2ecc71"  
+        self.hovered = False
 
-        self.anim = QPropertyAnimation(self, b"pulseRadius")
-        self.anim.setStartValue(0)
-        self.anim.setEndValue(100)
-        self.anim.setDuration(1000)
-        self.anim.setLoopCount(-1)
-        self.anim.setEasingCurve(QEasingCurve.Type.OutQuad)
+        # primary pulse (main circle)
+        self._pulse_radius = 0
+        self._pulse_color = "#2ecc71"
+        self.outer_anim = QPropertyAnimation(self, b"pulseRadius")
+        self.outer_anim.setStartValue(0)
+        self.outer_anim.setEndValue(120)
+        self.outer_anim.setDuration(800)
+        self.outer_anim.setLoopCount(-1)
+        self.outer_anim.setEasingCurve(QEasingCurve.Type.OutQuad)
+
+        # secondary pulse (soft halo)
+        self._halo_radius = 0
+        self.halo_anim = QPropertyAnimation(self, b"haloRadius")
+        self.halo_anim.setStartValue(0)
+        self.halo_anim.setEndValue(160)
+        self.halo_anim.setDuration(1500)
+        self.halo_anim.setLoopCount(-1)
+        self.halo_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+        # inner breathe (for disconnected state)
+        self._inner_radius = 0
+        self.inner_anim = QPropertyAnimation(self, b"innerRadius")
+        self.inner_anim.setStartValue(0)
+        self.inner_anim.setEndValue(30)
+        self.inner_anim.setDuration(1200)
+        self.inner_anim.setLoopCount(-1)
+        self.inner_anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
         self.updateStyle()
         self.clicked.connect(self.toggle_state)
 
+        # keep event loop alive
+        self._idle_timer = QTimer(self)
+        self._idle_timer.setInterval(1000)
+        self._idle_timer.timeout.connect(lambda: None)
+        self._idle_timer.start()
+
+    # --------------------
+    # hover events
+    # --------------------
+    def enterEvent(self, event):
+        self.hovered = True
+        if self.connected:
+            self.outer_anim.setDuration(500)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.hovered = False
+        if self.connected:
+            self.outer_anim.setDuration(800)
+        super().leaveEvent(event)
+
+    # --------------------
+    # Style / state
+    # --------------------
     def updateStyle(self):
         if self.connected:
             self.setText("DISCONNECT")
+            self._pulse_color = "#e74c3c"
             self.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #e74c3c;
+                    background-color: #b03a2e;
                     color: white;
                     font-size: 20px;
-                    font-weight: bold;
+                    font-weight: 700;
                     border-radius: 125px;
                     border: none;
                 }}
                 QPushButton:hover {{
-                    background-color: #c0392b;
+                    background-color: #96281b;
                 }}
             """)
-            self._pulse_color = "#e74c3c"
-            self.anim.start()
+            self.inner_anim.stop()
+            self.outer_anim.start()
+            self.halo_anim.start()
         else:
             self.setText("CONNECT")
+            self._pulse_color = "#2ecc71"
             self.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: #2ecc71;
+                    background-color: #27ae60;
                     color: white;
                     font-size: 20px;
-                    font-weight: bold;
+                    font-weight: 700;
                     border-radius: 125px;
                     border: none;
                 }}
                 QPushButton:hover {{
-                    background-color: #27ae60;
+                    background-color: #199441;
                 }}
             """)
-            self._pulse_color = "#540809"
-            self.anim.stop()
+            self.outer_anim.stop()
+            self.halo_anim.stop()
             self._pulse_radius = 0
-            self.update()
+            self._halo_radius = 0
+            self.inner_anim.start()
+        self.update()
 
     def toggle_state(self):
         self.connected = not self.connected
         self.updateStyle()
 
+    # --------------------
+    # Painting
+    # --------------------
     def paintEvent(self, event):
         super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        center = self.rect().center()
 
-        if self.connected:
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            center = self.rect().center()
-
-            opacity = max(0.0, 1.0 - self._pulse_radius / 100)
+        # inner breathe
+        if self._inner_radius and not self.connected:
             color = QColor(self._pulse_color)
-            color.setAlphaF(opacity * 0.7)
-
+            color.setAlphaF(0.55 * (1 - self._inner_radius / 30))
             painter.setBrush(QBrush(color))
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawEllipse(center, self._pulse_radius, self._pulse_radius)
+            painter.drawEllipse(center, int(self._inner_radius), int(self._inner_radius))
 
+        # outer pulse (connected)
+        if self._pulse_radius and self.connected:
+            color = QColor(self._pulse_color)
+            color.setAlphaF(0.6 * (1 - self._pulse_radius / 120))
+            painter.setBrush(QBrush(color))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(center, int(self._pulse_radius), int(self._pulse_radius))
+
+        # halo (big outer circle)
+        if self._halo_radius and self.connected:
+            color = QColor(self._pulse_color)
+            color.setAlphaF(0.2 * (1 - self._halo_radius / 160))
+            painter.setBrush(QBrush(color))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(center, int(self._halo_radius), int(self._halo_radius))
+
+        painter.end()
+
+    # --------------------
+    # Properties
+    # --------------------
     def getPulseRadius(self):
-        return self._pulse_radius
-
+        return int(self._pulse_radius)
     def setPulseRadius(self, value):
-        self._pulse_radius = value
+        self._pulse_radius = float(value)
         self.update()
+    pulseRadius = Property(int, getPulseRadius, setPulseRadius)
 
-    pulseRadius = Property(int, getPulseRadius, setPulseRadius)  
+    def getHaloRadius(self):
+        return int(self._halo_radius)
+    def setHaloRadius(self, value):
+        self._halo_radius = float(value)
+        self.update()
+    haloRadius = Property(int, getHaloRadius, setHaloRadius)
+
+    def getInnerRadius(self):
+        return int(self._inner_radius)
+    def setInnerRadius(self, value):
+        self._inner_radius = float(value)
+        self.update()
+    innerRadius = Property(int, getInnerRadius, setInnerRadius)
