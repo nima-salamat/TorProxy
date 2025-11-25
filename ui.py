@@ -235,3 +235,12 @@ class Window(QMainWindow):
         
     def _notify(self, title, message):
         self.tray_icon.showMessage(title, message, QSystemTrayIcon.Information, 2000)
+
+    def closeEvent(self, event):
+        if IS_WINDOWS and event.spontaneous():
+            logger.info("The window is closing by the close button.")
+            event.ignore()
+            self.hide()
+            return
+        logger.info("The window is closing by some other method.")
+        super().closeEvent(event)
