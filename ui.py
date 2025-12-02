@@ -244,3 +244,23 @@ class Window(QMainWindow):
             return
         logger.info("The window is closing by some other method.")
         super().closeEvent(event)
+
+    def moveEvent(self, event):
+        if IS_WINDOWS:
+            btn_x, btn_y, btn_w, btn_h = self.title_bar.btn_close.geometry().getRect()
+
+            x, y, w, h = self.geometry().getRect()
+
+            screen_rect = QApplication.primaryScreen().availableGeometry()
+            screen_w, screen_h = screen_rect.width(), screen_rect.height()
+
+            if x + btn_x < 0:
+                x = -btn_x
+            if y + btn_y < 0:
+                y = -btn_y
+            if x + btn_x + btn_w > screen_w:
+                x = screen_w - (btn_x + btn_w)
+            if y + btn_y + btn_h > screen_h:
+                y = screen_h - (btn_y + btn_h)
+
+            self.move(x, y)
