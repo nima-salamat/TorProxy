@@ -110,14 +110,7 @@ class Window(QMainWindow):
                 self.show()
             else:
                 self.hide()
-        
-    def closeEvent(self, event):
-        self.listener_running = False
-        if IS_WINDOWS:
-            self.listener_thread.join()
-        self.proxyWidget._stop_services()
-        event.accept()
-
+   
     def _createMenuBar(self):
         menuBar = QMenuBar(self)
         self.main_layout.addWidget(menuBar)
@@ -201,7 +194,9 @@ class Window(QMainWindow):
             QMessageBox.No
         )
         if reply == QMessageBox.Yes:
+            
             self.close()
+            
     
     def _show_help(self):
         QMessageBox.information(
@@ -237,13 +232,26 @@ class Window(QMainWindow):
         self.tray_icon.showMessage(title, message, QSystemTrayIcon.Information, 2000)
 
     def closeEvent(self, event):
+        
         if IS_WINDOWS and event.spontaneous():
             logger.info("The window is closing by the close button.")
             event.ignore()
             self.hide()
             return
+        elif IS_WINDOWS:
+            self.listener_running = False
+            
+            self.listener_thread.join()
+            self.proxyWidget._stop_services()
+            return
+        
+        self.listener_running = False   
         logger.info("The window is closing by some other method.")
-        super().closeEvent(event)
+        event.accept()
+        
+        
+        
+             
 
     def moveEvent(self, event):
         if IS_WINDOWS:
