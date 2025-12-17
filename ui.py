@@ -232,7 +232,6 @@ class Window(QMainWindow):
         self.tray_icon.showMessage(title, message, QSystemTrayIcon.Information, 2000)
 
     def closeEvent(self, event):
-        
         if IS_WINDOWS and event.spontaneous():
             logger.info("The window is closing by the close button.")
             event.ignore()
@@ -240,18 +239,13 @@ class Window(QMainWindow):
             return
         elif IS_WINDOWS:
             self.listener_running = False
-            
             self.listener_thread.join()
-            self.proxyWidget._stop_services()
-            return
         
-        self.listener_running = False   
+        self.listener_running = False 
+        self.tray_icon.hide()  
+        self.proxyWidget._stop_services()
         logger.info("The window is closing by some other method.")
         event.accept()
-        
-        
-        
-             
 
     def moveEvent(self, event):
         if IS_WINDOWS:
