@@ -30,6 +30,7 @@ def worker_data_usage_tracker(stop_event):
             data_usage = CONFIG["data_usage"]
             data_usage = 0 if data_usage is None else data_usage+byte
             CONFIG["data_usage"] = data_usage
+            continue
         time.sleep(0.05)
 
 def get_free_port():
