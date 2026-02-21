@@ -96,8 +96,7 @@ class Window(QMainWindow):
         while self.listener_running:
             time.sleep(0.5)
         keyboard.unhook_all_hotkeys()
-        
-        
+
     def show_tray(self):
         self.hide()
         # # shold use show becuase tray will delete after system locked in this case windows

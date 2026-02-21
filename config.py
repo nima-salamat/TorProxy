@@ -78,5 +78,12 @@ class Config:
     def save(self):
         data = self.json_to_text(self.data)
         self.save_config(data)
+        
+    def get(self, item, default=None):
+        try:
+            result = self[item]
+            return result
+        except:
+            return default
 
 CONFIG = Config()

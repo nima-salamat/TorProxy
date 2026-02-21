@@ -20,7 +20,7 @@ class TorRunner:
        
         # Node selection
         self.ExcludeNodes = []
-        self.ExitNodes = [] 
+        self.ExitNodes = [] #["us", "de", "nl", "se", "ca", "ch", "fi", "fr", "no", "gb"] 
         self.StrictNodes = 0
 
         # Circuit behavior
