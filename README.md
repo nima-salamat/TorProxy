@@ -31,6 +31,8 @@ Make sure these packages are available (listed in `requirements.txt`):
 * numpy
 * pyzbar (may require system `zbar`)
 * keyboard
+* requests
+* vcredist_x64.exe/vcredist_x86.exe
 
 Install dependencies:
 
